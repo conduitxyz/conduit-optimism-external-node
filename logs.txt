@@ -1,0 +1,23 @@
+{"t":"2026-01-16T10:27:02.741221846Z","lvl":"warn","msg":"Deriver system is resetting","err":"derivation failed: reset: failed to fetch blobs: failed to get blobs: get blobs from beacon client: failed request with status 404: {\"code\":404,\"message\":\"NOT_FOUND: no blobs stored for block 0x86a037fae8c0887a44fcedb7a29921d97622a0b8468feb50c054812ec51567d7\",\"stacktraces\":[]}: not found; failed to get blob sidecars for L1BlockRef 0x6686181ad31245b8f595f5a124202e7fdaa15294de67e01c9e1793388930b3a3:19635223 after falling back: failed to fetch blob sidecars for slot 8837407: failed request with status 404: {\"code\":404,\"message\":\"NOT_FOUND: no blobs stored for block 0x86a037fae8c0887a44fcedb7a29921d97622a0b8468feb50c054812ec51567d7\",\"stacktraces\":[]}: not found"}
+
+{"t":"2026-01-16T10:27:02.750793263Z","lvl":"info","msg":"Loaded current L2 heads","unsafe":"0x8ed4903b7f9c3f7bb7a09374d63ae9c9852cd9aab1784b433c41dbeb47b4dba2:0","safe":"0x8ed4903b7f9c3f7bb7a09374d63ae9c9852cd9aab1784b433c41dbeb47b4dba2:0","finalized":"0x8ed4903b7f9c3f7bb7a09374d63ae9c9852cd9aab1784b433c41dbeb47b4dba2:0","unsafe_origin":"0x218132178d65c4bc490aadd93c31535326043fe1fe8fea2d87f26c1da83d45c2:19634321","safe_origin":"0x218132178d65c4bc490aadd93c31535326043fe1fe8fea2d87f26c1da83d45c2:19634321"}
+
+{"t":"2026-01-16T10:27:02.805834846Z","lvl":"info","msg":"Walking back L1Block by number","curr":"0x218132178d65c4bc490aadd93c31535326043fe1fe8fea2d87f26c1da83d45c2:19634321","next":"0x218132178d65c4bc490aadd93c31535326043fe1fe8fea2d87f26c1da83d45c2:19634321","l2block":"0x8ed4903b7f9c3f7bb7a09374d63ae9c9852cd9aab1784b433c41dbeb47b4dba2:0"}
+
+{"t":"2026-01-16T10:27:02.805885388Z","lvl":"info","msg":"Hit finalized L2 head, returning immediately","unsafe":"0x8ed4903b7f9c3f7bb7a09374d63ae9c9852cd9aab1784b433c41dbeb47b4dba2:0","safe":"0x8ed4903b7f9c3f7bb7a09374d63ae9c9852cd9aab1784b433c41dbeb47b4dba2:0","finalized":"0x8ed4903b7f9c3f7bb7a09374d63ae9c9852cd9aab1784b433c41dbeb47b4dba2:0","unsafe_origin":"0x218132178d65c4bc490aadd93c31535326043fe1fe8fea2d87f26c1da83d45c2:19634321","safe_origin":"0x218132178d65c4bc490aadd93c31535326043fe1fe8fea2d87f26c1da83d45c2:19634321"}
+
+{"t":"2026-01-16T10:27:02.806865971Z","lvl":"info","msg":"Reset of Engine is completed","local_unsafe":"0x8ed4903b7f9c3f7bb7a09374d63ae9c9852cd9aab1784b433c41dbeb47b4dba2:0","cross_unsafe":"0x8ed4903b7f9c3f7bb7a09374d63ae9c9852cd9aab1784b433c41dbeb47b4dba2:0","local_safe":"0x8ed4903b7f9c3f7bb7a09374d63ae9c9852cd9aab1784b433c41dbeb47b4dba2:0","cross_safe":"0x8ed4903b7f9c3f7bb7a09374d63ae9c9852cd9aab1784b433c41dbeb47b4dba2:0","finalized":"0x8ed4903b7f9c3f7bb7a09374d63ae9c9852cd9aab1784b433c41dbeb47b4dba2:0"}
+
+
+
+
+{"t":"2026-01-16T10:41:47.578406422Z","lvl":"warn","msg":"error reconnecting to static peer","peer":"16Uiu2HAkv5SVdeF4hFqJyCATwT87S3PZmutm8akrgwfcdFeqNxWw","err":"failed to dial 16Uiu2HAkv5SVdeF4hFqJyCATwT87S3PZmutm8akrgwfcdFeqNxWw: all dials failed\n  * [/ip4/34.83.120.192/tcp/9222] failed to negotiate security protocol: error reading handshake message: chacha20poly1305: message authentication failed"}
+
+
+
+10135368
+
+{"t":"2026-01-28T04:35:36.285955135Z","lvl":"warn","msg":"Failed to share forkchoice-updated signal","state":{"headBlockHash":"0x3a7043df437b19ca132dc2909987a3fb4400e82b3bd3887892c540158d188d56","safeBlockHash":"0x3a7043df437b19ca132dc2909987a3fb4400e82b3bd3887892c540158d188d56","finalizedBlockHash":"0x3a7043df437b19ca132dc2909987a3fb4400e82b3bd3887892c540158d188d56"},"err":"method handler crashed"}
+
+{"t":"2026-01-28T04:35:36.286027676Z","lvl":"warn","msg":"Engine temporary error","err":"temporarily cannot insert new safe block: unexpected generic error code in forkchoice-updated response: method handler crashed"}
+

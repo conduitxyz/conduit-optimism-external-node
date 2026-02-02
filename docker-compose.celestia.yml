@@ -1,0 +1,114 @@
+services:
+  celestia-da-server:
+    image: ghcr.io/celestiaorg/op-alt-da:${CELESTIA_DA_SERVER_VERSION:-0.9.0}
+    platform: linux/amd64
+    # restart: unless-stopped
+    ports:
+      - "3100:3100" # DA API
+      - "6061:6060" # metrics
+    command:
+      - "--addr=0.0.0.0"
+      - "--port=3100"
+      - "--celestia.server=${CELESTIA_RPC}"
+      - "--celestia.auth-token=${CELESTIA_AUTH_TOKEN}"
+      - "--celestia.namespace=${CELESTIA_NAMESPACE}"
+      - "--log.level=${OP_ALTDA_LOG_LEVEL:-info}"
+      - "--metrics.enabled=true"
+      - "--metrics.port=6060"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  execution:
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-geth:${OP_GETH_VERSION:-v1.101605.0}
+    platform: linux/amd64
+    # restart: unless-stopped
+    ports:
+      - "8545:8545" # RPC
+      - "8546:8546" # websocket
+      - "7301:6060" # metrics
+      - "30303:30303" # P2P TCP
+      - "30303:30303/udp" # P2P UDP
+    command:
+      - "--datadir=/data"
+      - "--verbosity=3"
+      - "--http"
+      - "--http.corsdomain=*"
+      - "--http.vhosts=*"
+      - "--http.addr=0.0.0.0"
+      - "--http.port=8545"
+      - "--http.api=web3,eth,net"
+      - "--authrpc.addr=0.0.0.0"
+      - "--authrpc.port=8551"
+      - "--authrpc.vhosts=*"
+      - "--authrpc.jwtsecret=${OP_NODE_L2_ENGINE_AUTH}"
+      - "--ws"
+      - "--ws.addr=0.0.0.0"
+      - "--ws.port=8546"
+      - "--ws.origins=*"
+      - "--ws.api=web3,eth,net"
+      - "--metrics"
+      - "--metrics.addr=0.0.0.0"
+      - "--metrics.port=6060"
+      - "--syncmode=full"
+      - "--maxpeers=100"
+      - "--port=30303"
+      - "--discovery.port=30303"
+      - "--rollup.halt=major"
+      - "--rollup.disabletxpoolgossip=true"
+      - "--gcmode=archive"
+    environment:
+      - OP_GETH_GENESIS_FILE_PATH=/config/genesis.json
+    volumes:
+      - ./data:/data
+      - ./config:/config
+      - ./jwtsecret:/tmp/engine-auth-jwt
+    env_file:
+      - .env
+
+  node:
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:${OP_NODE_VERSION:-v1.16.5}
+    platform: linux/amd64
+    # restart: unless-stopped
+    depends_on:
+      - execution
+      - celestia-da-server
+    ports:
+      - "7545:8545" # RPC
+      - "9222:9222" # P2P TCP
+      - "9222:9222/udp" # P2P UDP
+      - "7300:7300" # metrics
+      - "6060:6060" # pprof
+    command:
+      - "op-node"
+      - "--l1=${OP_NODE_L1_ETH_RPC}"
+      - "--l1.beacon=${OP_NODE_L1_BEACON}"
+      - "--l2=http://execution:8551"
+      - "--l2.jwt-secret=/tmp/jwt-secret.txt"
+      - "--rollup.config=/config/rollup.json"
+      - "--sequencer.enabled=false"
+      - "--verifier.l1-confs=4"
+      - "--p2p.listen.ip=0.0.0.0"
+      - "--p2p.listen.tcp=9222"
+      - "--p2p.listen.udp=9222"
+      - "--p2p.bootnodes=${OP_NODE_P2P_BOOTNODES}"
+      - "--p2p.static=${OP_NODE_P2P_STATIC}"
+      - "--p2p.advertise.ip=${OP_NODE_P2P_ADVERTISE_IP}"
+      - "--rpc.addr=0.0.0.0"
+      - "--rpc.port=8545"
+      - "--metrics.enabled"
+      - "--metrics.addr=0.0.0.0"
+      - "--metrics.port=7300"
+      - "--pprof.enabled"
+      - "--log.level=debug"
+      - "--altda.enabled=true"
+      - "--altda.da-server=${OP_NODE_ALTDA_DA_SERVER:-http://celestia-da-server:3100}"
+    volumes:
+      - ./config:/config
+      - ./jwtsecret:/tmp/jwt-secret.txt
+    env_file:
+      - .env
