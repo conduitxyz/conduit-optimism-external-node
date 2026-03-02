@@ -137,6 +137,24 @@ if [[ -z "$PUBLIC_IP" ]]; then
     echo "Warning: Could not fetch public IP. You may need to set OP_NODE_P2P_ADVERTISE_IP manually."
 fi
 
+# Validate required L1 endpoints are configured
+echo "Validating required environment variables..."
+if [[ -f "$ENV_FILE" ]]; then
+    source "$ENV_FILE"
+fi
+if [[ -z "${OP_NODE_L1_ETH_RPC:-}" ]]; then
+    echo ""
+    echo "WARNING: OP_NODE_L1_ETH_RPC is not set in .env"
+    echo "  You must set this to your L1 Ethereum RPC URL before starting the node."
+    echo "  Example: OP_NODE_L1_ETH_RPC=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+fi
+if [[ -z "${OP_NODE_L1_BEACON:-}" ]]; then
+    echo ""
+    echo "WARNING: OP_NODE_L1_BEACON is not set in .env"
+    echo "  You must set this to your L1 Beacon chain RPC URL before starting the node."
+    echo "  Example: OP_NODE_L1_BEACON=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+fi
+
 echo "Updating .env..."
 update_env "OP_GETH_SEQUENCER_HTTP" "https://rpc-${SLUG}.t.conduit.xyz"
 update_env "OP_NODE_P2P_BOOTNODES" "${BOOTNODES}"
@@ -174,8 +192,9 @@ else
     echo "Creating jwtsecret file..."
     # Remove if it's a directory (Docker might have created it)
     rm -rf "$JWTSECRET_FILE"
-    # Generate random 32-byte hex secret
+    # Generate random 32-byte hex secret with restrictive permissions
     openssl rand -hex 32 > "$JWTSECRET_FILE"
+    chmod 600 "$JWTSECRET_FILE"
     echo "Created jwtsecret file with new random secret"
 fi
 
