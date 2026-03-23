@@ -24,7 +24,7 @@ services:
       retries: 5
 
   execution:
-    image: ghcr.io/paradigmxyz/op-reth:${OP_RETH_VERSION:-v1.9.3}
+    image: ghcr.io/paradigmxyz/op-reth:${OP_RETH_VERSION:-v1.10.2}
     platform: linux/amd64
     # restart: unless-stopped
     ports:
@@ -37,6 +37,7 @@ services:
       - "node"
       - "--datadir=/data"
       - "--chain=/config/genesis.json"
+      - "--rollup.sequencer=${L2_REMOTE_RPC}"
       - "--http"
       - "--http.corsdomain=*"
       - "--http.addr=0.0.0.0"
@@ -44,7 +45,7 @@ services:
       - "--http.api=web3,eth,net"
       - "--authrpc.addr=0.0.0.0"
       - "--authrpc.port=8551"
-      - "--authrpc.jwtsecret=/tmp/engine-auth-jwt"
+      - "--authrpc.jwtsecret=/jwt/jwt.hex"
       - "--ws"
       - "--ws.addr=0.0.0.0"
       - "--ws.port=8546"
@@ -54,15 +55,11 @@ services:
       - "--port=30303"
       - "--discovery.addr=0.0.0.0"
       - "--discovery.port=30303"
-      - "--bootnodes=${OP_RETH_BOOTNODES}"
       - "--rollup.disable-tx-pool-gossip"
     volumes:
       - ./data:/data
       - ./config:/config
-      - ./jwtsecret:/tmp/engine-auth-jwt
-    environment:
-      - OP_RETH_BOOTNODES=${OP_RETH_BOOTNODES}
-
+      - ./jwtsecret:/jwt/jwt.hex
   node:
     image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:${OP_NODE_VERSION:-v1.16.5}
     platform: linux/amd64
@@ -81,17 +78,14 @@ services:
       - "--l1=${OP_NODE_L1_ETH_RPC}"
       - "--l1.beacon=${OP_NODE_L1_BEACON}"
       - "--l2=http://execution:8551"
-      - "--l2.jwt-secret=/tmp/jwt-secret.txt"
+      - "--l2.jwt-secret=/jwt/jwt.hex"
       - "--l2.enginekind=reth"
       - "--rollup.config=/config/rollup.json"
       - "--sequencer.enabled=false"
-      - "--syncmode=execution-layer"
       - "--verifier.l1-confs=4"
       - "--p2p.listen.ip=0.0.0.0"
       - "--p2p.listen.tcp=9222"
       - "--p2p.listen.udp=9222"
-      - "--p2p.static=${OP_NODE_P2P_STATIC}"
-      - "--p2p.advertise.ip=${OP_NODE_P2P_ADVERTISE_IP}"
       - "--rpc.addr=0.0.0.0"
       - "--rpc.port=8545"
       - "--metrics.enabled"
@@ -103,10 +97,12 @@ services:
       - "--altda.da-server=${OP_NODE_ALTDA_DA_SERVER:-http://celestia-da-server:3100}"
     volumes:
       - ./config:/config
-      - ./jwtsecret:/tmp/jwt-secret.txt
+      - ./jwtsecret:/jwt/jwt.hex
     environment:
       - OP_NODE_L1_ETH_RPC=${OP_NODE_L1_ETH_RPC}
       - OP_NODE_L1_BEACON=${OP_NODE_L1_BEACON}
       - OP_NODE_P2P_STATIC=${OP_NODE_P2P_STATIC}
+      - OP_NODE_P2P_BOOTNODES=${OP_NODE_P2P_BOOTNODES}
       - OP_NODE_P2P_ADVERTISE_IP=${OP_NODE_P2P_ADVERTISE_IP}
-      - OP_NODE_OVERRIDE_PECTRABLOBSCHEDULE=${OP_NODE_OVERRIDE_PECTRABLOBSCHEDULE}
+      - OP_NODE_P2P_SYNC_ONLYREQTOSTATIC=${OP_NODE_P2P_SYNC_ONLYREQTOSTATIC}
+      - OP_NODE_SYNCMODE=${OP_NODE_SYNCMODE}
