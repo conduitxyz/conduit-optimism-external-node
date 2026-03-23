@@ -26,7 +26,8 @@ help:
 	@echo "  make setup NETWORK=<slug> ALTDA=eigenda   Setup EigenDA network"
 	@echo ""
 	@echo "Targets:"
-	@echo "  setup    Download config, init geth, and start containers"
+	@echo "  setup    Download config and prepare op-reth"
+	@echo "  init     Compatibility target; op-reth initializes on first start"
 	@echo "  up       Start containers [ALTDA=celestia/eigenda]"
 	@echo "  down     Stop containers [ALTDA=celestia/eigenda]"
 	@echo "  logs     Show container logs"
@@ -45,8 +46,7 @@ endif
 	./download-config.sh $(DOWNLOAD_FLAGS) $(NETWORK)
 
 init:
-	@echo "Initializing geth database..."
-	docker compose -f $(COMPOSE_FILE) run --rm execution init --datadir=/data /config/genesis.json
+	@echo "op-reth does not require a separate init step; database initialization happens on first start."
 
 up:
 	@echo "Starting containers with $(COMPOSE_FILE)..."

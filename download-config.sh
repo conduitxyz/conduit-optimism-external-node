@@ -158,25 +158,15 @@ if [[ -z "$PUBLIC_IP" ]]; then
 fi
 
 echo "Updating .env..."
-update_env "OP_GETH_SEQUENCER_HTTP" "https://rpc-${SLUG}.t.conduit.xyz"
-update_env "OP_NODE_P2P_BOOTNODES" "${BOOTNODES}"
+update_env "L2_REMOTE_RPC" "https://rpc-${SLUG}.t.conduit.xyz"
+update_env "OP_RETH_BOOTNODES" "${BOOTNODES}"
 update_env "OP_NODE_P2P_STATIC" "${STATIC_PEERS}"
 if [[ -n "$PUBLIC_IP" ]]; then
     update_env "OP_NODE_P2P_ADVERTISE_IP" "$PUBLIC_IP"
 fi
 
-# Parse fork timestamps and set GETH_OVERRIDE_* and OP_NODE_OVERRIDE_* env vars
-# Note: Delta is op-node only (not recognized by geth)
-GETH_FORKS=("canyon" "ecotone" "fjord" "granite" "holocene" "isthmus" "jovian")
+# Parse fork timestamps and set OP_NODE-only override env vars
 OPNODE_FORKS=("canyon" "delta" "ecotone" "fjord" "granite" "holocene" "isthmus" "jovian")
-
-for fork in "${GETH_FORKS[@]}"; do
-    timestamp=$(echo "$FORK_TIMESTAMPS" | jq -r ".${fork}_time // empty")
-    if [[ -n "$timestamp" ]]; then
-        fork_upper=$(echo "$fork" | tr '[:lower:]' '[:upper:]')
-        update_env "GETH_OVERRIDE_${fork_upper}" "$timestamp"
-    fi
-done
 
 for fork in "${OPNODE_FORKS[@]}"; do
     timestamp=$(echo "$FORK_TIMESTAMPS" | jq -r ".${fork}_time // empty")
@@ -185,6 +175,33 @@ for fork in "${OPNODE_FORKS[@]}"; do
         update_env "OP_NODE_OVERRIDE_${fork_upper}" "$timestamp"
     fi
 done
+
+PECTRA_BLOB_SCHEDULE_TIME=$(echo "$FORK_TIMESTAMPS" | jq -r '
+    .pectra_blob_schedule_time //
+    .pectra_blob_schedule_fix_time //
+    .pectra_blob_schedule //
+    .pectra_time //
+    empty
+')
+
+L1_CHAIN_ID=$(jq -r '.l1_chain_id // empty' "${CONFIG_DIR}/rollup.json")
+L2_GENESIS_TIME=$(jq -r '.genesis.l2_time // empty' "${CONFIG_DIR}/rollup.json")
+
+if [[ -z "$PECTRA_BLOB_SCHEDULE_TIME" && "$L1_CHAIN_ID" == "11155111" ]]; then
+    # Manual Sepolia fix time documented by Optimism for custom chains.
+    PECTRA_BLOB_SCHEDULE_TIME="1742486400"
+fi
+
+if [[ -n "$PECTRA_BLOB_SCHEDULE_TIME" ]]; then
+    update_env "OP_NODE_OVERRIDE_PECTRABLOBSCHEDULE" "$PECTRA_BLOB_SCHEDULE_TIME"
+
+    jq --argjson ts "$PECTRA_BLOB_SCHEDULE_TIME" '
+        . + {pectra_blob_schedule_time: $ts}
+    ' "${CONFIG_DIR}/rollup.json" > "${CONFIG_DIR}/rollup.json.tmp" && \
+        mv "${CONFIG_DIR}/rollup.json.tmp" "${CONFIG_DIR}/rollup.json"
+elif [[ -n "$L2_GENESIS_TIME" ]]; then
+    echo "Warning: No Pectra blob schedule time found for this network. Set OP_NODE_OVERRIDE_PECTRABLOBSCHEDULE manually if op-node refuses to start."
+fi
 
 # Create jwtsecret file if it doesn't exist
 JWTSECRET_FILE="${SCRIPT_DIR}/jwtsecret"
@@ -202,9 +219,12 @@ fi
 echo ""
 echo "Done! Config files saved to ${CONFIG_DIR}/"
 echo "Updated .env with:"
-echo "  OP_GETH_SEQUENCER_HTTP=https://rpc-${SLUG}.t.conduit.xyz"
-echo "  OP_NODE_P2P_BOOTNODES=${BOOTNODES}"
+echo "  L2_REMOTE_RPC=https://rpc-${SLUG}.t.conduit.xyz"
+echo "  OP_RETH_BOOTNODES=${BOOTNODES}"
 echo "  OP_NODE_P2P_STATIC=${STATIC_PEERS}"
-echo "  Fork timestamp overrides (GETH_OVERRIDE_* and OP_NODE_OVERRIDE_*)"
+if [[ -n "${PECTRA_BLOB_SCHEDULE_TIME:-}" ]]; then
+    echo "  OP_NODE_OVERRIDE_PECTRABLOBSCHEDULE=${PECTRA_BLOB_SCHEDULE_TIME}"
+fi
+echo "  Fork timestamp overrides for op-node (OP_NODE_OVERRIDE_*)"
 echo ""
 echo "JWT secret file: ${JWTSECRET_FILE}"

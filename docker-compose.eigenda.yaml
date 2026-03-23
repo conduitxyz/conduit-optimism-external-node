@@ -20,7 +20,7 @@ services:
       retries: 5
 
   execution:
-    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-geth:${OP_GETH_VERSION:-v1.101605.0}
+    image: ghcr.io/paradigmxyz/op-reth:${OP_RETH_VERSION:-v1.9.3}
     platform: linux/amd64
     # restart: unless-stopped
     ports:
@@ -30,41 +30,34 @@ services:
       - "30303:30303" # P2P TCP
       - "30303:30303/udp" # P2P UDP
     command:
+      - "node"
       - "--datadir=/data"
-      - "--verbosity=3"
+      - "--chain=/config/genesis.json"
       - "--http"
       - "--http.corsdomain=*"
-      - "--http.vhosts=*"
       - "--http.addr=0.0.0.0"
       - "--http.port=8545"
       - "--http.api=web3,eth,net"
       - "--authrpc.addr=0.0.0.0"
       - "--authrpc.port=8551"
-      - "--authrpc.vhosts=*"
-      - "--authrpc.jwtsecret=${OP_NODE_L2_ENGINE_AUTH}"
+      - "--authrpc.jwtsecret=/tmp/engine-auth-jwt"
       - "--ws"
       - "--ws.addr=0.0.0.0"
       - "--ws.port=8546"
       - "--ws.origins=*"
       - "--ws.api=web3,eth,net"
-      - "--metrics"
-      - "--metrics.addr=0.0.0.0"
-      - "--metrics.port=6060"
-      - "--syncmode=full"
-      - "--maxpeers=100"
+      - "--metrics=0.0.0.0:6060"
       - "--port=30303"
+      - "--discovery.addr=0.0.0.0"
       - "--discovery.port=30303"
-      - "--rollup.halt=major"
-      - "--rollup.disabletxpoolgossip=true"
-      - "--gcmode=archive"
-    environment:
-      - OP_GETH_GENESIS_FILE_PATH=/config/genesis.json
+      - "--bootnodes=${OP_RETH_BOOTNODES}"
+      - "--rollup.disable-tx-pool-gossip"
     volumes:
       - ./data:/data
       - ./config:/config
       - ./jwtsecret:/tmp/engine-auth-jwt
-    env_file:
-      - .env
+    environment:
+      - OP_RETH_BOOTNODES=${OP_RETH_BOOTNODES}
 
   node:
     image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:${OP_NODE_VERSION:-v1.16.5}
@@ -85,13 +78,14 @@ services:
       - "--l1.beacon=${OP_NODE_L1_BEACON}"
       - "--l2=http://execution:8551"
       - "--l2.jwt-secret=/tmp/jwt-secret.txt"
+      - "--l2.enginekind=reth"
       - "--rollup.config=/config/rollup.json"
       - "--sequencer.enabled=false"
+      - "--syncmode=execution-layer"
       - "--verifier.l1-confs=4"
       - "--p2p.listen.ip=0.0.0.0"
       - "--p2p.listen.tcp=9222"
       - "--p2p.listen.udp=9222"
-      - "--p2p.bootnodes=${OP_NODE_P2P_BOOTNODES}"
       - "--p2p.static=${OP_NODE_P2P_STATIC}"
       - "--p2p.advertise.ip=${OP_NODE_P2P_ADVERTISE_IP}"
       - "--rpc.addr=0.0.0.0"
@@ -106,5 +100,9 @@ services:
     volumes:
       - ./config:/config
       - ./jwtsecret:/tmp/jwt-secret.txt
-    env_file:
-      - .env
+    environment:
+      - OP_NODE_L1_ETH_RPC=${OP_NODE_L1_ETH_RPC}
+      - OP_NODE_L1_BEACON=${OP_NODE_L1_BEACON}
+      - OP_NODE_P2P_STATIC=${OP_NODE_P2P_STATIC}
+      - OP_NODE_P2P_ADVERTISE_IP=${OP_NODE_P2P_ADVERTISE_IP}
+      - OP_NODE_OVERRIDE_PECTRABLOBSCHEDULE=${OP_NODE_OVERRIDE_PECTRABLOBSCHEDULE}
