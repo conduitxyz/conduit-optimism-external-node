@@ -121,7 +121,7 @@ make clean     # Stop and remove all data (add ALTDA=celestia/eigenda if enabled
 
 | Command | Description |
 |---------|-------------|
-| `make setup NETWORK=<slug>` | Download config and prepare `op-reth` |
+| `make setup NETWORK=<slug>` | Download config and optionally restore a snapshot into `./data` |
 | `make setup NETWORK=<slug> ALTDA=celestia` | Download config for Celestia DA chains |
 | `make setup NETWORK=<slug> ALTDA=eigenda` | Download config for EigenDA chains |
 | `make init` | Compatibility target; `op-reth` initializes on first start |
@@ -140,7 +140,8 @@ make clean     # Stop and remove all data (add ALTDA=celestia/eigenda if enabled
 | `docker-compose.celestia.yml` | Celestia DA configuration |
 | `docker-compose.eigenda.yaml` | EigenDA configuration |
 | `.env.example` | Environment variable template |
-| `download-config.sh` | Downloads rollup.json/genesis.json, patches missing Pectra blob schedule config, and updates `op-reth`/`op-node` env vars |
+| `download-config.sh` | Downloads rollup.json/genesis.json and updates `op-reth`/`op-node` env vars |
+| `download-snapshot.sh` | Restores the Conduit `latest.tar` snapshot into `./data` when enabled during setup |
 | `sync-status.sh` | Monitors node sync progress |
 
 ## Data Storage

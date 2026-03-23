@@ -1,4 +1,4 @@
-.PHONY: setup init up down logs status clean help
+.PHONY: setup download snapshot up down logs status clean help
 
 NETWORK ?=
 ALTDA ?=
@@ -26,8 +26,8 @@ help:
 	@echo "  make setup NETWORK=<slug> ALTDA=eigenda   Setup EigenDA network"
 	@echo ""
 	@echo "Targets:"
-	@echo "  setup    Download config and prepare op-reth"
-	@echo "  init     Compatibility target; op-reth initializes on first start"
+	@echo "  setup    Download config and optionally restore a snapshot"
+	@echo "           Set SNAPSHOT_ENABLED=true in .env to restore into ./data"
 	@echo "  up       Start containers [ALTDA=celestia/eigenda]"
 	@echo "  down     Stop containers [ALTDA=celestia/eigenda]"
 	@echo "  logs     Show container logs"
@@ -35,7 +35,7 @@ help:
 	@echo "  clean    Stop containers and remove data [ALTDA=celestia/eigenda]"
 	@echo ""
 
-setup: download init
+setup: download snapshot
 	@echo "Setup complete!"
 
 download:
@@ -45,8 +45,14 @@ endif
 	@echo "Downloading config for $(NETWORK)..."
 	./download-config.sh $(DOWNLOAD_FLAGS) $(NETWORK)
 
-init:
-	@echo "op-reth does not require a separate init step; database initialization happens on first start."
+snapshot:
+	@SNAPSHOT_ENABLED_VALUE=$$(awk -F= '/^SNAPSHOT_ENABLED=/{print $$2}' .env 2>/dev/null); \
+	if [ "$${SNAPSHOT_ENABLED_VALUE:-false}" = "true" ]; then \
+		echo "Restoring snapshot for $(NETWORK)..."; \
+		./download-snapshot.sh $(NETWORK); \
+	else \
+		echo "Snapshot restore disabled; skipping."; \
+	fi
 
 up:
 	@echo "Starting containers with $(COMPOSE_FILE)..."

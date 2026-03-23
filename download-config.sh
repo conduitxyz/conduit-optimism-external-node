@@ -38,6 +38,14 @@ update_env() {
     fi
 }
 
+get_env() {
+    local key="$1"
+
+    if [[ -f "$ENV_FILE" ]]; then
+        awk -F= -v key="$key" '$1 == key { print substr($0, index($0, "=") + 1); exit }' "$ENV_FILE"
+    fi
+}
+
 ALTDA_TYPE=""
 SLUG=""
 
@@ -158,6 +166,12 @@ if [[ -z "$PUBLIC_IP" ]]; then
 fi
 
 echo "Updating .env..."
+update_env "NETWORK" "${SLUG}"
+SNAPSHOT_ENABLED_VALUE="$(get_env "SNAPSHOT_ENABLED")"
+if [[ -z "$SNAPSHOT_ENABLED_VALUE" ]]; then
+    SNAPSHOT_ENABLED_VALUE="false"
+    update_env "SNAPSHOT_ENABLED" "$SNAPSHOT_ENABLED_VALUE"
+fi
 update_env "L2_REMOTE_RPC" "https://rpc-${SLUG}.t.conduit.xyz"
 update_env "OP_NODE_P2P_BOOTNODES" "${BOOTNODES}"
 update_env "OP_NODE_P2P_STATIC" "${STATIC_PEERS}"
@@ -192,6 +206,8 @@ fi
 echo ""
 echo "Done! Config files saved to ${CONFIG_DIR}/"
 echo "Updated .env with:"
+echo "  NETWORK=${SLUG}"
+echo "  SNAPSHOT_ENABLED=${SNAPSHOT_ENABLED_VALUE}"
 echo "  L2_REMOTE_RPC=https://rpc-${SLUG}.t.conduit.xyz"
 echo "  OP_NODE_P2P_BOOTNODES=${BOOTNODES}"
 echo "  OP_NODE_P2P_STATIC=${STATIC_PEERS}"
