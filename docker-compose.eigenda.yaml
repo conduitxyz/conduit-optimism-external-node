@@ -2,15 +2,20 @@ services:
   eigenda-proxy:
     image: ghcr.io/layr-labs/eigenda-proxy:${EIGENDA_PROXY_VERSION:-2.4.1}
     platform: linux/amd64
+    environment:
+      - EIGENDA_PROXY_EIGENDA_V2_NETWORK=${EIGENDA_PROXY_EIGENDA_V2_NETWORK}
+      - EIGENDA_PROXY_EIGENDA_V2_CERT_VERIFIER_ROUTER_OR_IMMUTABLE_VERIFIER_ADDR=${EIGENDA_PROXY_EIGENDA_V2_CERT_VERIFIER_ROUTER_OR_IMMUTABLE_VERIFIER_ADDR}
+      - EIGENDA_PROXY_STORAGE_BACKENDS_TO_ENABLE=${EIGENDA_PROXY_STORAGE_BACKENDS_TO_ENABLE}
+      - EIGENDA_PROXY_STORAGE_DISPERSAL_BACKEND=${EIGENDA_PROXY_STORAGE_DISPERSAL_BACKEND}
+      - EIGENDA_PROXY_EIGENDA_V2_DISPERSER_RPC=${EIGENDA_PROXY_EIGENDA_V2_DISPERSER_RPC}
+      - EIGENDA_PROXY_EIGENDA_V2_ETH_RPC=${OP_NODE_L1_ETH_RPC}
+      - EIGENDA_PROXY_APIS_TO_ENABLE=op-generic,metrics
     ports:
       - "3100:3100"   # EigenDA Proxy
       - "6060:6060" # metrics
     command:
       - "--addr=0.0.0.0"
       - "--port=3100"
-      - "--apis.enabled=op-generic,metrics"
-      - "--eigenda.v2.eth-rpc=${OP_NODE_L1_ETH_RPC}"
-      - "--eigenda.v2.eigenda-directory=${EIGENDA_DIRECTORY}"
     env_file:
       - .env
     healthcheck:
@@ -20,7 +25,7 @@ services:
       retries: 5
 
   execution:
-    image: ghcr.io/paradigmxyz/op-reth:${OP_RETH_VERSION:-v1.10.2}
+    image: ghcr.io/conduitxyz/conduit-op-reth:${OP_RETH_VERSION:-v1.0.0-rc.1}
     platform: linux/amd64
     # restart: unless-stopped
     ports:

@@ -72,7 +72,7 @@ L2_REMOTE_RPC=https://rpc-<network-slug>.t.conduit.xyz/<api-key>
 
 | Variable | Description |
 |----------|-------------|
-| `EIGENDA_DIRECTORY` | EigenDA directory contract address |
+| `EIGENDA_PROXY_EIGENDA_V2_NETWORK` | EigenDA V2 network (`mainnet` or `sepolia_testnet`) |
 | `EIGENDA_PROXY_EIGENDA_V2_CERT_VERIFIER_ROUTER_OR_IMMUTABLE_VERIFIER_ADDR` | V2 cert verifier/router address |
 | `EIGENDA_PROXY_STORAGE_BACKENDS_TO_ENABLE` | Storage backend (set to `V2`) |
 | `EIGENDA_PROXY_STORAGE_DISPERSAL_BACKEND` | Dispersal backend (set to `V2`) |

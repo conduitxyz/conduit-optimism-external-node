@@ -66,5 +66,5 @@ while true; do
 
     echo ""
     echo "Refreshing in 10s... (Ctrl+C to exit)"
-    sleep 10
+    sleep 1
 done

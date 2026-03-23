@@ -46,6 +46,35 @@ get_env() {
     fi
 }
 
+delete_env() {
+    local key="$1"
+
+    if [[ -f "$ENV_FILE" ]]; then
+        sed -i.bak "/^${key}=/d" "$ENV_FILE"
+        rm -f "${ENV_FILE}.bak"
+    fi
+}
+
+infer_eigenda_network_from_l1() {
+    local eth_rpc="$1"
+    local beacon="$2"
+    local combined
+
+    combined="${eth_rpc} ${beacon}"
+
+    if echo "$combined" | grep -Eiq 'sepolia'; then
+        echo "sepolia_testnet"
+        return 0
+    fi
+
+    if echo "$combined" | grep -Eiq 'mainnet|eth-mainnet'; then
+        echo "mainnet"
+        return 0
+    fi
+
+    return 1
+}
+
 ALTDA_TYPE=""
 SLUG=""
 
@@ -179,6 +208,47 @@ if [[ -n "$PUBLIC_IP" ]]; then
     update_env "OP_NODE_P2P_ADVERTISE_IP" "$PUBLIC_IP"
 fi
 
+if [[ "$ALTDA_TYPE" == "eigenda" ]]; then
+    L1_ETH_RPC_VALUE="$(get_env "OP_NODE_L1_ETH_RPC")"
+    L1_BEACON_VALUE="$(get_env "OP_NODE_L1_BEACON")"
+
+    if [[ -z "$L1_ETH_RPC_VALUE" || -z "$L1_BEACON_VALUE" ]]; then
+        echo "ALTDA=eigenda requires OP_NODE_L1_ETH_RPC and OP_NODE_L1_BEACON to be set in .env before setup."
+        exit 1
+    fi
+
+    if ! EIGENDA_NETWORK_VALUE="$(infer_eigenda_network_from_l1 "$L1_ETH_RPC_VALUE" "$L1_BEACON_VALUE")"; then
+        echo "Failed to infer EigenDA network from the configured L1 URLs."
+        echo "Supported inference targets are Ethereum mainnet and Sepolia."
+        echo "OP_NODE_L1_ETH_RPC=${L1_ETH_RPC_VALUE}"
+        echo "OP_NODE_L1_BEACON=${L1_BEACON_VALUE}"
+        exit 1
+    fi
+
+    case "$EIGENDA_NETWORK_VALUE" in
+        mainnet)
+            EIGENDA_VERIFIER_ADDR="0x1be7258230250Bc6a4548F8D59d576a87D216C12"
+            EIGENDA_DISPERSER_RPC_DEFAULT="disperser.eigenda.xyz:443"
+            ;;
+        sepolia_testnet)
+            EIGENDA_VERIFIER_ADDR="0x17ec4112c4BbD540E2c1fE0A49D264a280176F0D"
+            EIGENDA_DISPERSER_RPC_DEFAULT="disperser-testnet-sepolia.eigenda.xyz:443"
+            ;;
+    esac
+
+    EIGENDA_DISPERSER_RPC_VALUE="$(get_env "EIGENDA_PROXY_EIGENDA_V2_DISPERSER_RPC")"
+    if [[ -z "$EIGENDA_DISPERSER_RPC_VALUE" ]]; then
+        EIGENDA_DISPERSER_RPC_VALUE="$EIGENDA_DISPERSER_RPC_DEFAULT"
+    fi
+
+    update_env "EIGENDA_PROXY_EIGENDA_V2_NETWORK" "$EIGENDA_NETWORK_VALUE"
+    update_env "EIGENDA_PROXY_EIGENDA_V2_CERT_VERIFIER_ROUTER_OR_IMMUTABLE_VERIFIER_ADDR" "$EIGENDA_VERIFIER_ADDR"
+    update_env "EIGENDA_PROXY_STORAGE_BACKENDS_TO_ENABLE" "V2"
+    update_env "EIGENDA_PROXY_STORAGE_DISPERSAL_BACKEND" "V2"
+    update_env "EIGENDA_PROXY_EIGENDA_V2_DISPERSER_RPC" "$EIGENDA_DISPERSER_RPC_VALUE"
+    delete_env "EIGENDA_DIRECTORY"
+fi
+
 # Parse fork timestamps and set OP_NODE-only override env vars
 OPNODE_FORKS=("canyon" "delta" "ecotone" "fjord" "granite" "holocene" "isthmus" "jovian")
 
@@ -211,6 +281,13 @@ echo "  SNAPSHOT_ENABLED=${SNAPSHOT_ENABLED_VALUE}"
 echo "  L2_REMOTE_RPC=https://rpc-${SLUG}.t.conduit.xyz"
 echo "  OP_NODE_P2P_BOOTNODES=${BOOTNODES}"
 echo "  OP_NODE_P2P_STATIC=${STATIC_PEERS}"
+if [[ "$ALTDA_TYPE" == "eigenda" ]]; then
+    echo "  EIGENDA_PROXY_EIGENDA_V2_NETWORK=${EIGENDA_NETWORK_VALUE}"
+    echo "  EIGENDA_PROXY_EIGENDA_V2_CERT_VERIFIER_ROUTER_OR_IMMUTABLE_VERIFIER_ADDR=${EIGENDA_VERIFIER_ADDR}"
+    echo "  EIGENDA_PROXY_STORAGE_BACKENDS_TO_ENABLE=V2"
+    echo "  EIGENDA_PROXY_STORAGE_DISPERSAL_BACKEND=V2"
+    echo "  EIGENDA_PROXY_EIGENDA_V2_DISPERSER_RPC=${EIGENDA_DISPERSER_RPC_VALUE}"
+fi
 echo "  Fork timestamp overrides for op-node (OP_NODE_OVERRIDE_*)"
 echo ""
 echo "JWT secret file: ${JWTSECRET_FILE}"
