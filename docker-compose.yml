@@ -1,6 +1,6 @@
 services:
   execution:
-    image: ghcr.io/paradigmxyz/op-reth:${OP_RETH_VERSION:-v1.10.2}
+    image: ghcr.io/paradigmxyz/op-reth:${OP_RETH_UPSTREAM_VERSION:-v1.10.2}
     platform: linux/amd64
     # restart: unless-stopped
     ports:

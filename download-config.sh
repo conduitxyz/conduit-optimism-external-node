@@ -46,6 +46,21 @@ get_env() {
     fi
 }
 
+set_eigenda_reth_image() {
+    local slug="$1"
+
+    case "$slug" in
+        saigon-testnet-cc58e966ql|ronin-mainnet-bfz9fadqzl)
+            update_env "OP_RETH_IMAGE" "ghcr.io/conduitxyz/conduit-op-reth"
+            update_env "OP_RETH_VERSION" "v1.0.0-rc.1"
+            ;;
+        *)
+            update_env "OP_RETH_IMAGE" "ghcr.io/paradigmxyz/op-reth"
+            update_env "OP_RETH_VERSION" "v1.10.2"
+            ;;
+    esac
+}
+
 delete_env() {
     local key="$1"
 
@@ -209,6 +224,7 @@ if [[ -n "$PUBLIC_IP" ]]; then
 fi
 
 if [[ "$ALTDA_TYPE" == "eigenda" ]]; then
+    set_eigenda_reth_image "$SLUG"
     L1_ETH_RPC_VALUE="$(get_env "OP_NODE_L1_ETH_RPC")"
     L1_BEACON_VALUE="$(get_env "OP_NODE_L1_BEACON")"
 
@@ -282,6 +298,8 @@ echo "  L2_REMOTE_RPC=https://rpc-${SLUG}.t.conduit.xyz"
 echo "  OP_NODE_P2P_BOOTNODES=${BOOTNODES}"
 echo "  OP_NODE_P2P_STATIC=${STATIC_PEERS}"
 if [[ "$ALTDA_TYPE" == "eigenda" ]]; then
+    echo "  OP_RETH_IMAGE=$(get_env "OP_RETH_IMAGE")"
+    echo "  OP_RETH_VERSION=$(get_env "OP_RETH_VERSION")"
     echo "  EIGENDA_PROXY_EIGENDA_V2_NETWORK=${EIGENDA_NETWORK_VALUE}"
     echo "  EIGENDA_PROXY_EIGENDA_V2_CERT_VERIFIER_ROUTER_OR_IMMUTABLE_VERIFIER_ADDR=${EIGENDA_VERIFIER_ADDR}"
     echo "  EIGENDA_PROXY_STORAGE_BACKENDS_TO_ENABLE=V2"
