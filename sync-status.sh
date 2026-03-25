@@ -64,7 +64,20 @@ while true; do
     printf "│ %-15s │ %13s │\n" "Remote Latest" "$LATEST_L2_REMOTE"
     echo "└─────────────────┴───────────────┘"
 
+    if [[ "$LATEST_L2_REMOTE" != "N/A" ]] && [[ "$LATEST_L2_REMOTE" -gt 0 ]] 2>/dev/null; then
+        BEHIND=$((LATEST_L2_REMOTE - UNSAFE_L2))
+        PCT="$(awk "BEGIN { printf \"%.2f\", (${UNSAFE_L2} * 100) / ${LATEST_L2_REMOTE} }" 2>/dev/null || echo "N/A")"
+
+        echo ""
+        echo "┌─────────────────────────────────┐"
+        echo "│         Sync Progress           │"
+        echo "├─────────────────┬───────────────┤"
+        printf "│ %-15s │ %12s%% │\n" "Progress" "$PCT"
+        printf "│ %-15s │ %13s │\n" "Behind by" "$BEHIND"
+        echo "└─────────────────┴───────────────┘"
+    fi
+
     echo ""
     echo "Refreshing in 10s... (Ctrl+C to exit)"
-    sleep 1
+    sleep 10
 done
