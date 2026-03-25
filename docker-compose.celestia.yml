@@ -2,7 +2,7 @@ services:
   celestia-da-server:
     image: ghcr.io/celestiaorg/op-alt-da:${CELESTIA_DA_SERVER_VERSION:-0.9.0}
     platform: linux/amd64
-    # restart: unless-stopped
+    restart: unless-stopped
     ports:
       - "3100:3100" # DA API
       - "6061:6060" # metrics
@@ -17,16 +17,11 @@ services:
       - "--metrics.port=6060"
     env_file:
       - .env
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
 
   execution:
     image: ghcr.io/paradigmxyz/op-reth:${OP_RETH_UPSTREAM_VERSION:-v1.10.2}
     platform: linux/amd64
-    # restart: unless-stopped
+    restart: unless-stopped
     ports:
       - "8545:8545" # RPC
       - "8546:8546" # websocket
@@ -60,13 +55,21 @@ services:
       - ./data:/data
       - ./config:/config
       - ./jwtsecret:/jwt/jwt.hex
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -X POST http://localhost:8545 -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
   node:
     image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:${OP_NODE_VERSION:-v1.16.5}
     platform: linux/amd64
-    # restart: unless-stopped
+    restart: unless-stopped
     depends_on:
-      - execution
-      - celestia-da-server
+      execution:
+        condition: service_healthy
+      celestia-da-server:
+        condition: service_started
     ports:
       - "7545:8545" # RPC
       - "9222:9222" # P2P TCP
@@ -106,3 +109,9 @@ services:
       - OP_NODE_P2P_ADVERTISE_IP=${OP_NODE_P2P_ADVERTISE_IP}
       - OP_NODE_P2P_SYNC_ONLYREQTOSTATIC=${OP_NODE_P2P_SYNC_ONLYREQTOSTATIC}
       - OP_NODE_SYNCMODE=${OP_NODE_SYNCMODE}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -X POST http://localhost:8545 -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"method\":\"optimism_syncStatus\",\"params\":[],\"id\":1}' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
