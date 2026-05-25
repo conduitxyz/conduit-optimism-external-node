@@ -194,6 +194,15 @@ FORK_TIMESTAMPS=$(curl -sf "${CONDUIT_API_URL}${FORK_TIMESTAMPS_API_PATH}${SLUG}
     exit 1
 }
 
+PECTRA_BLOB_SCHEDULE_TIME=$(echo "$FORK_TIMESTAMPS" | jq -r '.pectrablobschedule_time // .pectra_blob_schedule_time // empty')
+if [[ -n "$PECTRA_BLOB_SCHEDULE_TIME" ]]; then
+    echo "Adding pectra_blob_schedule_time to rollup.json..."
+    jq --argjson timestamp "$PECTRA_BLOB_SCHEDULE_TIME" \
+        '.pectra_blob_schedule_time = $timestamp' \
+        "${CONFIG_DIR}/rollup.json" > "${CONFIG_DIR}/rollup.json.tmp" && \
+        mv "${CONFIG_DIR}/rollup.json.tmp" "${CONFIG_DIR}/rollup.json"
+fi
+
 echo "Fetching public IP..."
 PUBLIC_IP=""
 for provider in "http://ifconfig.me" "http://api.ipify.org" "http://ipecho.net/plain" "http://v4.ident.me"; do
