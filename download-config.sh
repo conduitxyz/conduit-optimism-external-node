@@ -154,26 +154,6 @@ if ! curl -sf "${CONDUIT_API_URL}${GENESIS_API_PATH}${SLUG}" -o "${CONFIG_DIR}/g
     exit 1
 fi
 
-echo "Normalizing OP Stack fork timestamps in genesis.json..."
-jq '
-    if .config.canyonTime != null then
-        .config.shanghaiTime = .config.canyonTime
-    else
-        .
-    end
-    | if .config.ecotoneTime != null then
-        .config.cancunTime = .config.ecotoneTime
-    else
-        .
-    end
-    | if .config.isthmusTime != null then
-        .config.pragueTime = .config.isthmusTime
-    else
-        .
-    end
-' "${CONFIG_DIR}/genesis.json" > "${CONFIG_DIR}/genesis.json.tmp" && \
-    mv "${CONFIG_DIR}/genesis.json.tmp" "${CONFIG_DIR}/genesis.json"
-
 echo "Fetching bootnodes..."
 BOOTNODES=$(curl -sf "${CONDUIT_API_URL}${BOOTNODES_API_PATH}${SLUG}") || {
     echo "Failed to fetch bootnodes"
