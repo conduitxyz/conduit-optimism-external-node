@@ -21,5 +21,5 @@ fi
 
 SNAPSHOT_URL="https://storage.googleapis.com/conduit-networks-snapshots/${NETWORK}/latest.tar"
 echo "Downloading snapshot from ${SNAPSHOT_URL} into ${DATADIR}..."
-curl -fL --retry 5 --retry-delay 5 "$SNAPSHOT_URL" | tar -xvf - -C "$DATADIR" --strip-components=1
+curl -fL --retry 5 --retry-delay 5 "$SNAPSHOT_URL" | tar --no-same-owner --no-same-permissions -xvf - -C "$DATADIR" --strip-components=1
 echo "Snapshot restore complete."
