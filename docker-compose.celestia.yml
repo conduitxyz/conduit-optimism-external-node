@@ -17,6 +17,11 @@ services:
       - "--metrics.port=6060"
     env_file:
       - .env
+    environment:
+      - SSL_CERT_DIR=/etc/ssl/certs
+      - SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
 
   execution:
     image: ${OP_RETH_IMAGE:-ghcr.io/paradigmxyz/op-reth}:${OP_RETH_VERSION:-v1.10.2}
