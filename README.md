@@ -37,14 +37,13 @@ Default Docker image versions (can be overridden in `.env`):
 
 | Variable | Default |
 |----------|---------|
-| `OP_RETH_IMAGE` | `ghcr.io/paradigmxyz/op-reth` |
-| `OP_RETH_VERSION` | `v1.10.2` |
+| `OP_RETH_IMAGE` | `ghcr.io/conduitxyz/conduit-op-reth` |
+| `OP_RETH_VERSION` | `v1.0.3` |
 | `OP_NODE_VERSION` | `v1.16.5` |
 | `CELESTIA_DA_SERVER_VERSION` | `0.12.0` |
-| `EIGENDA_PROXY_VERSION` | `2.4.1` |
+| `EIGENDA_PROXY_VERSION` | `2.7.0` |
 
 All execution services use `${OP_RETH_IMAGE}:${OP_RETH_VERSION}`.
-For `ALTDA=eigenda`, `make setup` switches the execution image to `ghcr.io/conduitxyz/conduit-op-reth:v1.0.0-rc.1` when `NETWORK` is `saigon-testnet-cc58e966ql` or `ronin-mainnet-bfz9fadqzl`.
 
 ## Required Environment Variables
 
