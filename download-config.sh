@@ -46,21 +46,6 @@ get_env() {
     fi
 }
 
-set_eigenda_reth_image() {
-    local slug="$1"
-
-    case "$slug" in
-        saigon-testnet-cc58e966ql|ronin-mainnet-bfz9fadqzl)
-            update_env "OP_RETH_IMAGE" "ghcr.io/conduitxyz/conduit-op-reth"
-            update_env "OP_RETH_VERSION" "v1.0.0-rc.1"
-            ;;
-        *)
-            update_env "OP_RETH_IMAGE" "ghcr.io/paradigmxyz/op-reth"
-            update_env "OP_RETH_VERSION" "v1.10.2"
-            ;;
-    esac
-}
-
 delete_env() {
     local key="$1"
 
@@ -70,24 +55,30 @@ delete_env() {
     fi
 }
 
-infer_eigenda_network_from_l1() {
+get_eigenda_network_from_l1_chain_id() {
     local eth_rpc="$1"
-    local beacon="$2"
-    local combined
+    local response
+    local chain_id
 
-    combined="${eth_rpc} ${beacon}"
+    response="$(curl -sfS --max-time 20 \
+        -H 'content-type: application/json' \
+        --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' \
+        "$eth_rpc")" || return 1
 
-    if echo "$combined" | grep -Eiq 'sepolia'; then
-        echo "sepolia_testnet"
-        return 0
-    fi
+    chain_id="$(echo "$response" | jq -er '.result // empty')" || return 1
 
-    if echo "$combined" | grep -Eiq 'mainnet|eth-mainnet'; then
-        echo "mainnet"
-        return 0
-    fi
-
-    return 1
+    case "$chain_id" in
+        0x1|0X1)
+            echo "mainnet"
+            ;;
+        0xaa36a7|0XAA36A7)
+            echo "sepolia_testnet"
+            ;;
+        *)
+            echo "Unsupported L1 chain ID for EigenDA: ${chain_id}" >&2
+            return 1
+            ;;
+    esac
 }
 
 ALTDA_TYPE=""
@@ -232,7 +223,6 @@ if [[ -n "$PUBLIC_IP" ]]; then
 fi
 
 if [[ "$ALTDA_TYPE" == "eigenda" ]]; then
-    set_eigenda_reth_image "$SLUG"
     L1_ETH_RPC_VALUE="$(get_env "OP_NODE_L1_ETH_RPC")"
     L1_BEACON_VALUE="$(get_env "OP_NODE_L1_BEACON")"
 
@@ -241,9 +231,9 @@ if [[ "$ALTDA_TYPE" == "eigenda" ]]; then
         exit 1
     fi
 
-    if ! EIGENDA_NETWORK_VALUE="$(infer_eigenda_network_from_l1 "$L1_ETH_RPC_VALUE" "$L1_BEACON_VALUE")"; then
-        echo "Failed to infer EigenDA network from the configured L1 URLs."
-        echo "Supported inference targets are Ethereum mainnet and Sepolia."
+    if ! EIGENDA_NETWORK_VALUE="$(get_eigenda_network_from_l1_chain_id "$L1_ETH_RPC_VALUE")"; then
+        echo "Failed to determine EigenDA network from OP_NODE_L1_ETH_RPC eth_chainId."
+        echo "Supported L1 chain IDs are Ethereum mainnet (0x1) and Sepolia (0xaa36a7)."
         echo "OP_NODE_L1_ETH_RPC=${L1_ETH_RPC_VALUE}"
         echo "OP_NODE_L1_BEACON=${L1_BEACON_VALUE}"
         exit 1
