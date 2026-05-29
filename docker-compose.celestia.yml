@@ -100,7 +100,7 @@ services:
       - "--metrics.addr=0.0.0.0"
       - "--metrics.port=7300"
       - "--pprof.enabled"
-      - "--log.level=debug"
+      - "--log.level=info"
       - "--altda.enabled=true"
       - "--altda.da-server=${OP_NODE_ALTDA_DA_SERVER:-http://celestia-da-server:3100}"
     volumes:

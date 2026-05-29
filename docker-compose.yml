@@ -74,7 +74,7 @@ services:
       - "--metrics.addr=0.0.0.0"
       - "--metrics.port=7300"
       - "--pprof.enabled"
-      - "--log.level=debug"
+      - "--log.level=info"
     volumes:
       - ./config:/config
       - ./jwtsecret:/jwt/jwt.hex
