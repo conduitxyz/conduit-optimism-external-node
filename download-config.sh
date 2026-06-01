@@ -38,6 +38,49 @@ update_env() {
     fi
 }
 
+get_env() {
+    local key="$1"
+
+    if [[ -f "$ENV_FILE" ]]; then
+        awk -F= -v key="$key" '$1 == key { print substr($0, index($0, "=") + 1); exit }' "$ENV_FILE"
+    fi
+}
+
+delete_env() {
+    local key="$1"
+
+    if [[ -f "$ENV_FILE" ]]; then
+        sed -i.bak "/^${key}=/d" "$ENV_FILE"
+        rm -f "${ENV_FILE}.bak"
+    fi
+}
+
+get_eigenda_network_from_l1_chain_id() {
+    local eth_rpc="$1"
+    local response
+    local chain_id
+
+    response="$(curl -sfS --max-time 20 \
+        -H 'content-type: application/json' \
+        --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' \
+        "$eth_rpc")" || return 1
+
+    chain_id="$(echo "$response" | jq -er '.result // empty')" || return 1
+
+    case "$chain_id" in
+        0x1|0X1)
+            echo "mainnet"
+            ;;
+        0xaa36a7|0XAA36A7)
+            echo "sepolia_testnet"
+            ;;
+        *)
+            echo "Unsupported L1 chain ID for EigenDA: ${chain_id}" >&2
+            return 1
+            ;;
+    esac
+}
+
 ALTDA_TYPE=""
 SLUG=""
 
@@ -102,26 +145,6 @@ if ! curl -sf "${CONDUIT_API_URL}${GENESIS_API_PATH}${SLUG}" -o "${CONFIG_DIR}/g
     exit 1
 fi
 
-echo "Normalizing OP Stack fork timestamps in genesis.json..."
-jq '
-    if .config.canyonTime != null then
-        .config.shanghaiTime = .config.canyonTime
-    else
-        .
-    end
-    | if .config.ecotoneTime != null then
-        .config.cancunTime = .config.ecotoneTime
-    else
-        .
-    end
-    | if .config.isthmusTime != null then
-        .config.pragueTime = .config.isthmusTime
-    else
-        .
-    end
-' "${CONFIG_DIR}/genesis.json" > "${CONFIG_DIR}/genesis.json.tmp" && \
-    mv "${CONFIG_DIR}/genesis.json.tmp" "${CONFIG_DIR}/genesis.json"
-
 echo "Fetching bootnodes..."
 BOOTNODES=$(curl -sf "${CONDUIT_API_URL}${BOOTNODES_API_PATH}${SLUG}") || {
     echo "Failed to fetch bootnodes"
@@ -142,6 +165,15 @@ FORK_TIMESTAMPS=$(curl -sf "${CONDUIT_API_URL}${FORK_TIMESTAMPS_API_PATH}${SLUG}
     exit 1
 }
 
+PECTRA_BLOB_SCHEDULE_TIME=$(echo "$FORK_TIMESTAMPS" | jq -r '.pectrablobschedule_time // .pectra_blob_schedule_time // empty')
+if [[ -n "$PECTRA_BLOB_SCHEDULE_TIME" ]]; then
+    echo "Adding pectra_blob_schedule_time to rollup.json..."
+    jq --argjson timestamp "$PECTRA_BLOB_SCHEDULE_TIME" \
+        '.pectra_blob_schedule_time = $timestamp' \
+        "${CONFIG_DIR}/rollup.json" > "${CONFIG_DIR}/rollup.json.tmp" && \
+        mv "${CONFIG_DIR}/rollup.json.tmp" "${CONFIG_DIR}/rollup.json"
+fi
+
 echo "Fetching public IP..."
 PUBLIC_IP=""
 for provider in "http://ifconfig.me" "http://api.ipify.org" "http://ipecho.net/plain" "http://v4.ident.me"; do
@@ -157,26 +189,79 @@ if [[ -z "$PUBLIC_IP" ]]; then
     echo "Warning: Could not fetch public IP. You may need to set OP_NODE_P2P_ADVERTISE_IP manually."
 fi
 
+echo "Validating L1 configuration..."
+if [[ -f "$ENV_FILE" ]]; then
+    set -a
+    source "$ENV_FILE"
+    set +a
+fi
+
+if [[ -z "${OP_NODE_L1_ETH_RPC:-}" ]]; then
+    echo ""
+    echo "WARNING: OP_NODE_L1_ETH_RPC is not set in .env"
+    echo "  You must set this to your L1 Ethereum RPC URL before starting the node."
+fi
+
+if [[ -z "${OP_NODE_L1_BEACON:-}" ]]; then
+    echo ""
+    echo "WARNING: OP_NODE_L1_BEACON is not set in .env"
+    echo "  You must set this to your L1 Beacon chain RPC URL before starting the node."
+fi
+
 echo "Updating .env..."
-update_env "OP_GETH_SEQUENCER_HTTP" "https://rpc-${SLUG}.t.conduit.xyz"
+update_env "NETWORK" "${SLUG}"
+SNAPSHOT_ENABLED_VALUE="$(get_env "SNAPSHOT_ENABLED")"
+if [[ -z "$SNAPSHOT_ENABLED_VALUE" ]]; then
+    SNAPSHOT_ENABLED_VALUE="false"
+    update_env "SNAPSHOT_ENABLED" "$SNAPSHOT_ENABLED_VALUE"
+fi
+update_env "L2_REMOTE_RPC" "https://rpc-${SLUG}.t.conduit.xyz"
 update_env "OP_NODE_P2P_BOOTNODES" "${BOOTNODES}"
 update_env "OP_NODE_P2P_STATIC" "${STATIC_PEERS}"
 if [[ -n "$PUBLIC_IP" ]]; then
     update_env "OP_NODE_P2P_ADVERTISE_IP" "$PUBLIC_IP"
 fi
 
-# Parse fork timestamps and set GETH_OVERRIDE_* and OP_NODE_OVERRIDE_* env vars
-# Note: Delta is op-node only (not recognized by geth)
-GETH_FORKS=("canyon" "ecotone" "fjord" "granite" "holocene" "isthmus" "jovian")
-OPNODE_FORKS=("canyon" "delta" "ecotone" "fjord" "granite" "holocene" "isthmus" "jovian")
+if [[ "$ALTDA_TYPE" == "eigenda" ]]; then
+    L1_ETH_RPC_VALUE="$(get_env "OP_NODE_L1_ETH_RPC")"
+    L1_BEACON_VALUE="$(get_env "OP_NODE_L1_BEACON")"
 
-for fork in "${GETH_FORKS[@]}"; do
-    timestamp=$(echo "$FORK_TIMESTAMPS" | jq -r ".${fork}_time // empty")
-    if [[ -n "$timestamp" ]]; then
-        fork_upper=$(echo "$fork" | tr '[:lower:]' '[:upper:]')
-        update_env "GETH_OVERRIDE_${fork_upper}" "$timestamp"
+    if [[ -z "$L1_ETH_RPC_VALUE" || -z "$L1_BEACON_VALUE" ]]; then
+        echo "ALTDA=eigenda requires OP_NODE_L1_ETH_RPC and OP_NODE_L1_BEACON to be set in .env before setup."
+        exit 1
     fi
-done
+
+    if ! EIGENDA_NETWORK_VALUE="$(get_eigenda_network_from_l1_chain_id "$L1_ETH_RPC_VALUE")"; then
+        echo "Failed to determine EigenDA network from OP_NODE_L1_ETH_RPC eth_chainId."
+        echo "Supported L1 chain IDs are Ethereum mainnet (0x1) and Sepolia (0xaa36a7)."
+        echo "OP_NODE_L1_ETH_RPC=${L1_ETH_RPC_VALUE}"
+        echo "OP_NODE_L1_BEACON=${L1_BEACON_VALUE}"
+        exit 1
+    fi
+
+    case "$EIGENDA_NETWORK_VALUE" in
+        mainnet)
+            EIGENDA_VERIFIER_ADDR="0x1be7258230250Bc6a4548F8D59d576a87D216C12"
+            EIGENDA_DISPERSER_RPC_DEFAULT="disperser.eigenda.xyz:443"
+            ;;
+        sepolia_testnet)
+            EIGENDA_VERIFIER_ADDR="0x17ec4112c4BbD540E2c1fE0A49D264a280176F0D"
+            EIGENDA_DISPERSER_RPC_DEFAULT="disperser-testnet-sepolia.eigenda.xyz:443"
+            ;;
+    esac
+
+    EIGENDA_DISPERSER_RPC_VALUE="$EIGENDA_DISPERSER_RPC_DEFAULT"
+
+    update_env "EIGENDA_PROXY_EIGENDA_V2_NETWORK" "$EIGENDA_NETWORK_VALUE"
+    update_env "EIGENDA_PROXY_EIGENDA_V2_CERT_VERIFIER_ROUTER_OR_IMMUTABLE_VERIFIER_ADDR" "$EIGENDA_VERIFIER_ADDR"
+    update_env "EIGENDA_PROXY_STORAGE_BACKENDS_TO_ENABLE" "V2"
+    update_env "EIGENDA_PROXY_STORAGE_DISPERSAL_BACKEND" "V2"
+    update_env "EIGENDA_PROXY_EIGENDA_V2_DISPERSER_RPC" "$EIGENDA_DISPERSER_RPC_VALUE"
+    delete_env "EIGENDA_DIRECTORY"
+fi
+
+# Parse fork timestamps and set OP_NODE-only override env vars
+OPNODE_FORKS=("canyon" "delta" "ecotone" "fjord" "granite" "holocene" "isthmus" "jovian")
 
 for fork in "${OPNODE_FORKS[@]}"; do
     timestamp=$(echo "$FORK_TIMESTAMPS" | jq -r ".${fork}_time // empty")
@@ -190,21 +275,34 @@ done
 JWTSECRET_FILE="${SCRIPT_DIR}/jwtsecret"
 if [[ -f "$JWTSECRET_FILE" ]]; then
     echo "jwtsecret file already exists, keeping existing secret"
+    chmod 600 "$JWTSECRET_FILE"
 else
     echo "Creating jwtsecret file..."
     # Remove if it's a directory (Docker might have created it)
     rm -rf "$JWTSECRET_FILE"
-    # Generate random 32-byte hex secret
+    # Generate random 32-byte hex secret with restrictive permissions
     openssl rand -hex 32 > "$JWTSECRET_FILE"
+    chmod 600 "$JWTSECRET_FILE"
     echo "Created jwtsecret file with new random secret"
 fi
 
 echo ""
 echo "Done! Config files saved to ${CONFIG_DIR}/"
 echo "Updated .env with:"
-echo "  OP_GETH_SEQUENCER_HTTP=https://rpc-${SLUG}.t.conduit.xyz"
+echo "  NETWORK=${SLUG}"
+echo "  SNAPSHOT_ENABLED=${SNAPSHOT_ENABLED_VALUE}"
+echo "  L2_REMOTE_RPC=https://rpc-${SLUG}.t.conduit.xyz"
 echo "  OP_NODE_P2P_BOOTNODES=${BOOTNODES}"
 echo "  OP_NODE_P2P_STATIC=${STATIC_PEERS}"
-echo "  Fork timestamp overrides (GETH_OVERRIDE_* and OP_NODE_OVERRIDE_*)"
+if [[ "$ALTDA_TYPE" == "eigenda" ]]; then
+    echo "  OP_RETH_IMAGE=$(get_env "OP_RETH_IMAGE")"
+    echo "  OP_RETH_VERSION=$(get_env "OP_RETH_VERSION")"
+    echo "  EIGENDA_PROXY_EIGENDA_V2_NETWORK=${EIGENDA_NETWORK_VALUE}"
+    echo "  EIGENDA_PROXY_EIGENDA_V2_CERT_VERIFIER_ROUTER_OR_IMMUTABLE_VERIFIER_ADDR=${EIGENDA_VERIFIER_ADDR}"
+    echo "  EIGENDA_PROXY_STORAGE_BACKENDS_TO_ENABLE=V2"
+    echo "  EIGENDA_PROXY_STORAGE_DISPERSAL_BACKEND=V2"
+    echo "  EIGENDA_PROXY_EIGENDA_V2_DISPERSER_RPC=${EIGENDA_DISPERSER_RPC_VALUE}"
+fi
+echo "  Fork timestamp overrides for op-node (OP_NODE_OVERRIDE_*)"
 echo ""
 echo "JWT secret file: ${JWTSECRET_FILE}"

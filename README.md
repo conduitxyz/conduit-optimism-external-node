@@ -4,7 +4,7 @@
 
 Conduit provides fully-managed, production-grade rollups on Ethereum. We highly recommend using a Conduit RPC for the fastest and most reliable experience, visit the [Conduit App](https://app.conduit.xyz/nodes) to create your very own RPC.
 
-This repository contains the relevant Docker builds to run your own node on OP Stack networks deployed via Conduit.
+This repository contains the relevant Docker builds to run your own node on OP Stack networks deployed via Conduit using `op-reth` and `op-node`.
 
 [![Website conduit.xyz](https://img.shields.io/website-up-down-green-red/https/conduit.xyz.svg)](https://conduit.xyz)
 [![Status](https://img.shields.io/badge/status-up-green)](https://status.conduit.xyz/)
@@ -29,18 +29,7 @@ This repository contains the relevant Docker builds to run your own node on OP S
 
 ## Node Mode
 
-**The node runs in archive mode by default.** Archive mode retains full historical state, which requires more disk space but allows querying any historical block.
-
-To switch to full mode (non-archive), edit the docker-compose file and comment out the gcmode flag:
-
-```yaml
-# - "--gcmode=archive"    # Comment this line for full mode
-```
-
-| Mode | Description | Disk Usage |
-|------|-------------|------------|
-| `archive` | Retains all historical state | Higher |
-| `full` | Prunes old state, keeps recent | Lower |
+**The node runs with `op-reth` in execution-layer sync mode.** `op-reth` operates as an archive node in this configuration, so plan for materially higher disk usage than a pruned full node.
 
 ## Image Versions
 
@@ -48,10 +37,13 @@ Default Docker image versions (can be overridden in `.env`):
 
 | Variable | Default |
 |----------|---------|
-| `OP_GETH_VERSION` | `v1.101605.0` |
+| `OP_RETH_IMAGE` | `ghcr.io/conduitxyz/conduit-op-reth` |
+| `OP_RETH_VERSION` | `v1.0.3` |
 | `OP_NODE_VERSION` | `v1.16.5` |
-| `CELESTIA_DA_SERVER_VERSION` | `0.9.0` |
-| `EIGENDA_PROXY_VERSION` | `2.4.1` |
+| `CELESTIA_DA_SERVER_VERSION` | `0.12.0` |
+| `EIGENDA_PROXY_VERSION` | `2.7.0` |
+
+All execution services use `${OP_RETH_IMAGE}:${OP_RETH_VERSION}`.
 
 ## Required Environment Variables
 
@@ -61,10 +53,11 @@ Before starting, configure these in your `.env` file:
 |----------|-------------|
 | `OP_NODE_L1_ETH_RPC` | L1 Ethereum RPC URL |
 | `OP_NODE_L1_BEACON` | L1 Beacon chain RPC URL |
+| `L2_REMOTE_RPC` | Remote L2 RPC used by `make status` for sync comparison |
 
-**Note:** `OP_GETH_SEQUENCER_HTTP` is automatically set by `make setup`. For production usage, create an API key in the [Conduit application](https://app.conduit.xyz/nodes) and append it to the URL:
+**Note:** `L2_REMOTE_RPC` is automatically set by `make setup`. For production usage, create an API key in the [Conduit application](https://app.conduit.xyz/nodes) and append it to the URL:
 ```
-OP_GETH_SEQUENCER_HTTP=https://rpc-<network-slug>.t.conduit.xyz/<api-key>
+L2_REMOTE_RPC=https://rpc-<network-slug>.t.conduit.xyz/<api-key>
 ```
 
 
@@ -82,7 +75,7 @@ OP_GETH_SEQUENCER_HTTP=https://rpc-<network-slug>.t.conduit.xyz/<api-key>
 
 | Variable | Description |
 |----------|-------------|
-| `EIGENDA_DIRECTORY` | EigenDA directory contract address |
+| `EIGENDA_PROXY_EIGENDA_V2_NETWORK` | EigenDA V2 network (`mainnet` or `sepolia_testnet`) |
 | `EIGENDA_PROXY_EIGENDA_V2_CERT_VERIFIER_ROUTER_OR_IMMUTABLE_VERIFIER_ADDR` | V2 cert verifier/router address |
 | `EIGENDA_PROXY_STORAGE_BACKENDS_TO_ENABLE` | Storage backend (set to `V2`) |
 | `EIGENDA_PROXY_STORAGE_DISPERSAL_BACKEND` | Dispersal backend (set to `V2`) |
@@ -131,9 +124,10 @@ make clean     # Stop and remove all data (add ALTDA=celestia/eigenda if enabled
 
 | Command | Description |
 |---------|-------------|
-| `make setup NETWORK=<slug>` | Download config and initialize geth |
+| `make setup NETWORK=<slug>` | Download config and optionally restore a snapshot into `./data` |
 | `make setup NETWORK=<slug> ALTDA=celestia` | Download config for Celestia DA chains |
 | `make setup NETWORK=<slug> ALTDA=eigenda` | Download config for EigenDA chains |
+| `make init` | Compatibility target; `op-reth` initializes on first start |
 | `make up` | Start containers (add `ALTDA=celestia/eigenda` if using Alt DA) |
 | `make down` | Stop containers (add `ALTDA=celestia/eigenda` if using Alt DA) |
 | `make logs` | Show container logs |
@@ -149,7 +143,8 @@ make clean     # Stop and remove all data (add ALTDA=celestia/eigenda if enabled
 | `docker-compose.celestia.yml` | Celestia DA configuration |
 | `docker-compose.eigenda.yaml` | EigenDA configuration |
 | `.env.example` | Environment variable template |
-| `download-config.sh` | Downloads rollup.json and genesis.json from Conduit API |
+| `download-config.sh` | Downloads rollup.json/genesis.json and updates `op-reth`/`op-node` env vars |
+| `download-snapshot.sh` | Restores the Conduit `latest.tar` snapshot into `./data` when enabled during setup |
 | `sync-status.sh` | Monitors node sync progress |
 
 ## Data Storage
