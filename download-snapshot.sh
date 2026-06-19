@@ -6,6 +6,32 @@ NETWORK="${1:-${NETWORK:-}}"
 DATADIR="${DATADIR:-./data}"
 DB_PATH="${DATADIR}/db/mdbx.dat"
 PROGRESS_MONITOR_PID=""
+SNAPSHOT_TOTAL_SIZE=""
+
+format_bytes() {
+    local bytes="$1"
+
+    if command -v numfmt >/dev/null 2>&1; then
+        numfmt --to=iec-i --suffix=B "$bytes"
+    else
+        awk -v bytes="$bytes" '
+            BEGIN {
+                split("B KiB MiB GiB TiB PiB", units, " ")
+                value = bytes
+                unit = 1
+                while (value >= 1024 && unit < 6) {
+                    value /= 1024
+                    unit++
+                }
+                if (unit == 1) {
+                    printf "%.0f%s\n", value, units[unit]
+                } else {
+                    printf "%.1f%s\n", value, units[unit]
+                }
+            }
+        '
+    fi
+}
 
 start_progress_monitor() {
     (
@@ -15,7 +41,11 @@ start_progress_monitor() {
             if [[ -z "$SIZE" ]]; then
                 SIZE="unknown"
             fi
-            echo "Snapshot restore in progress: ${DATADIR} is currently ${SIZE}."
+            if [[ -n "$SNAPSHOT_TOTAL_SIZE" ]]; then
+                echo "Snapshot restore in progress: ${DATADIR} is currently ${SIZE} of ${SNAPSHOT_TOTAL_SIZE}."
+            else
+                echo "Snapshot restore in progress: ${DATADIR} is currently ${SIZE}."
+            fi
         done
     ) &
     PROGRESS_MONITOR_PID="$!"
@@ -69,8 +99,17 @@ if [[ -z "${GCP_PROJECT:-}" ]]; then
 fi
 
 SNAPSHOT_URL="gs://conduit-networks-snapshots/${NETWORK}/latest.tar"
+SNAPSHOT_TOTAL_BYTES="$(
+    gcloud --billing-project="$GCP_PROJECT" storage objects describe "$SNAPSHOT_URL" --format="value(size)" 2>/dev/null || true
+)"
+if [[ "$SNAPSHOT_TOTAL_BYTES" =~ ^[0-9]+$ ]]; then
+    SNAPSHOT_TOTAL_SIZE="$(format_bytes "$SNAPSHOT_TOTAL_BYTES")"
+fi
 
 echo "Streaming snapshot from ${SNAPSHOT_URL} into ${DATADIR}..."
+if [[ -n "$SNAPSHOT_TOTAL_SIZE" ]]; then
+    echo "Snapshot size: ${SNAPSHOT_TOTAL_SIZE}."
+fi
 echo "Large database files may take a while to extract without additional output."
 start_progress_monitor
 trap stop_progress_monitor EXIT
