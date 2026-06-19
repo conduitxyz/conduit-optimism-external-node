@@ -62,7 +62,7 @@ Before starting, configure these in your `.env` file:
 L2_REMOTE_RPC=https://rpc-<network-slug>.t.conduit.xyz/<api-key>
 ```
 
-**Note:** Snapshot restores download from a requester-pays Google Cloud Storage bucket. Set `GCP_PROJECT` in `.env`, export it, or configure an active `gcloud` project before enabling `SNAPSHOT_ENABLED=true`.
+**Note:** Snapshot restores stream from a requester-pays Google Cloud Storage bucket into `./data`. Set `GCP_PROJECT` in `.env`, export it, or configure an active `gcloud` project before enabling `SNAPSHOT_ENABLED=true`. During restore, progress is reported as periodic local data directory size updates rather than an exact percentage.
 
 
 ### Optional Environment Variables (if ALT DA is enabled)

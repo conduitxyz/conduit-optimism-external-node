@@ -5,6 +5,29 @@ set -euo pipefail
 NETWORK="${1:-${NETWORK:-}}"
 DATADIR="${DATADIR:-./data}"
 DB_PATH="${DATADIR}/db/mdbx.dat"
+PROGRESS_MONITOR_PID=""
+
+start_progress_monitor() {
+    (
+        while true; do
+            sleep 30
+            SIZE="$(du -sh "$DATADIR" 2>/dev/null | awk '{print $1}')"
+            if [[ -z "$SIZE" ]]; then
+                SIZE="unknown"
+            fi
+            echo "Snapshot restore in progress: ${DATADIR} is currently ${SIZE}."
+        done
+    ) &
+    PROGRESS_MONITOR_PID="$!"
+}
+
+stop_progress_monitor() {
+    if [[ -n "${PROGRESS_MONITOR_PID:-}" ]]; then
+        kill "$PROGRESS_MONITOR_PID" 2>/dev/null || true
+        wait "$PROGRESS_MONITOR_PID" 2>/dev/null || true
+        PROGRESS_MONITOR_PID=""
+    fi
+}
 
 if [[ -z "$NETWORK" ]]; then
     echo "Usage: ./download-snapshot.sh <network-slug>"
@@ -49,7 +72,13 @@ SNAPSHOT_URL="gs://conduit-networks-snapshots/${NETWORK}/latest.tar"
 
 echo "Streaming snapshot from ${SNAPSHOT_URL} into ${DATADIR}..."
 echo "Large database files may take a while to extract without additional output."
+start_progress_monitor
+trap stop_progress_monitor EXIT
+trap 'stop_progress_monitor; exit 130' INT
+trap 'stop_progress_monitor; exit 143' TERM
 gcloud --billing-project="$GCP_PROJECT" storage cat "$SNAPSHOT_URL" |
     tar --no-same-owner --no-same-permissions -xf - -C "$DATADIR" --strip-components=1
+stop_progress_monitor
+trap - EXIT INT TERM
 
 echo "Snapshot restore complete."
