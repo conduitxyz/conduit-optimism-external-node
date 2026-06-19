@@ -5,14 +5,6 @@ set -euo pipefail
 NETWORK="${1:-${NETWORK:-}}"
 DATADIR="${DATADIR:-./data}"
 DB_PATH="${DATADIR}/db/mdbx.dat"
-TMP_SNAPSHOT=""
-
-cleanup() {
-    if [[ -n "$TMP_SNAPSHOT" && -f "$TMP_SNAPSHOT" ]]; then
-        rm -f "$TMP_SNAPSHOT"
-    fi
-}
-trap cleanup EXIT
 
 if [[ -z "$NETWORK" ]]; then
     echo "Usage: ./download-snapshot.sh <network-slug>"
@@ -41,9 +33,9 @@ if [[ -z "${GCP_PROJECT:-}" ]] && command -v gcloud >/dev/null 2>&1; then
     fi
 fi
 
-if ! command -v gsutil >/dev/null 2>&1; then
-    echo "Error: gsutil is required to restore requester-pays snapshots."
-    echo "Install the Google Cloud SDK and configure billing."
+if ! command -v gcloud >/dev/null 2>&1; then
+    echo "Error: gcloud is required to restore requester-pays snapshots."
+    echo "Install the Google Cloud CLI and configure billing."
     exit 1
 fi
 
@@ -54,10 +46,10 @@ if [[ -z "${GCP_PROJECT:-}" ]]; then
 fi
 
 SNAPSHOT_URL="gs://conduit-networks-snapshots/${NETWORK}/latest.tar"
-TMP_SNAPSHOT="$(mktemp "${TMPDIR:-/tmp}/conduit-snapshot.XXXXXX")"
 
-echo "Downloading snapshot from ${SNAPSHOT_URL} into ${DATADIR}..."
-gsutil -u "$GCP_PROJECT" cp "$SNAPSHOT_URL" "$TMP_SNAPSHOT"
+echo "Streaming snapshot from ${SNAPSHOT_URL} into ${DATADIR}..."
+echo "Large database files may take a while to extract without additional output."
+gcloud --billing-project="$GCP_PROJECT" storage cat "$SNAPSHOT_URL" |
+    tar --no-same-owner --no-same-permissions -xf - -C "$DATADIR" --strip-components=1
 
-tar --no-same-owner --no-same-permissions -xvf "$TMP_SNAPSHOT" -C "$DATADIR" --strip-components=1
 echo "Snapshot restore complete."

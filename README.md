@@ -18,7 +18,7 @@ This repository contains the relevant Docker builds to run your own node on OP S
 - `make`
 - `jq`
 - `curl` and `bc`
-- `gsutil` from the Google Cloud SDK, required when restoring snapshots
+- Google Cloud CLI with `gcloud storage`, required when restoring snapshots
 
 ## Hardware Requirements
 
@@ -55,7 +55,7 @@ Before starting, configure these in your `.env` file:
 | `OP_NODE_L1_ETH_RPC` | L1 Ethereum RPC URL |
 | `OP_NODE_L1_BEACON` | L1 Beacon chain RPC URL |
 | `L2_REMOTE_RPC` | Remote L2 RPC used by `make status` for sync comparison |
-| `GCP_PROJECT` | Google Cloud billing project used by `gsutil` for requester-pays snapshot downloads; defaults to the active `gcloud` project when unset |
+| `GCP_PROJECT` | Google Cloud billing project used by `gcloud storage` for requester-pays snapshot downloads; defaults to the active `gcloud` project when unset |
 
 **Note:** `L2_REMOTE_RPC` is automatically set by `make setup`. For production usage, create an API key in the [Conduit application](https://app.conduit.xyz/nodes) and append it to the URL:
 ```
