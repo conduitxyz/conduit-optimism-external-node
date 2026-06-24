@@ -62,7 +62,7 @@ Before starting, configure these in your `.env` file:
 L2_REMOTE_RPC=https://rpc-<network-slug>.t.conduit.xyz/<api-key>
 ```
 
-**Note:** Snapshot restores stream from a requester-pays Google Cloud Storage bucket into `./data`. Set `GCP_PROJECT` in `.env`, export it, or configure an active `gcloud` project before enabling `SNAPSHOT_ENABLED=true`. The authenticated Google Cloud principal also needs the `roles/serviceusage.serviceUsageConsumer` role on the billing project used for requester-pays requests ([GCP docs](https://docs.cloud.google.com/storage/docs/requester-pays#requirements)).
+**Note:** Snapshot restores stream from a requester-pays Google Cloud Storage bucket into `./data`. Set `GCP_PROJECT` in `.env`, export it, or configure an active `gcloud` project before enabling `SNAPSHOT_ENABLED=true`. The authenticated Google Cloud account also needs the `roles/serviceusage.serviceUsageConsumer` role on the billing project used for requester-pays requests ([GCP docs](https://docs.cloud.google.com/storage/docs/requester-pays#requirements)).
 
 
 ### Optional Environment Variables (if ALT DA is enabled)
