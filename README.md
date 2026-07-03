@@ -64,7 +64,7 @@ Before starting, configure these in your `.env` file:
 L2_REMOTE_RPC=https://rpc-<network-slug>.t.conduit.xyz/<api-key>
 ```
 
-**Note:** For Ronin migration networks, set `UPDATE_BEDROCK_BLOCK=true` before running setup. This is supported for `saigon-testnet-cc58e966ql` and `ronin-mainnet-bfz9fadqzl`. If the node needs pre-bedrock historical data, set `RETH_HISTORICAL_RPC` to an RPC endpoint that can serve it and uncomment the `--rollup.historicalrpc=${RETH_HISTORICAL_RPC}` line in `docker-compose.eigenda.yaml`. Leave that line commented for ordinary chains.
+**Note:** For Ronin networks, set `UPDATE_BEDROCK_BLOCK=true` before running setup. This is supported for `saigon-testnet-cc58e966ql` and `ronin-mainnet-bfz9fadqzl`. If the node needs pre-bedrock historical data, set `RETH_HISTORICAL_RPC` to an RPC endpoint that can serve it and uncomment the `--rollup.historicalrpc=${RETH_HISTORICAL_RPC}` line in `docker-compose.eigenda.yaml`. Leave that line commented for other chains.
 
 #### Important 
 Snapshot restores stream from a requester-pays Google Cloud Storage bucket into `./data`. Set `GCP_PROJECT` in `.env`, export it, or configure an active `gcloud` project before enabling `SNAPSHOT_ENABLED=true`. The authenticated Google Cloud account also needs the `roles/serviceusage.serviceUsageConsumer` role on the billing project used for requester-pays requests ([GCP docs](https://docs.cloud.google.com/storage/docs/requester-pays#requirements)).
