@@ -71,7 +71,7 @@ Snapshot restores stream from a requester-pays Google Cloud Storage bucket into 
 
 ### Optional Environment Variables (if ALT DA is enabled)
 
-### Celestia DA Specific
+#### Celestia DA Specific
 
 | Variable | Description |
 |----------|-------------|
@@ -79,7 +79,7 @@ Snapshot restores stream from a requester-pays Google Cloud Storage bucket into 
 | `CELESTIA_AUTH_TOKEN` | Celestia authentication token (optional) |
 | `CELESTIA_NAMESPACE` | Celestia namespace |
 
-### EigenDA Specific (V2)
+#### EigenDA Specific (V2)
 
 | Variable | Description |
 |----------|-------------|
