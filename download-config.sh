@@ -46,6 +46,24 @@ get_env() {
     fi
 }
 
+get_bool_env() {
+    local key="$1"
+    local value="${!key:-}"
+
+    if [[ -z "$value" ]]; then
+        value="$(get_env "$key")"
+    fi
+
+    case "$value" in
+        true|TRUE|1|yes|YES)
+            echo "true"
+            ;;
+        *)
+            echo "false"
+            ;;
+    esac
+}
+
 delete_env() {
     local key="$1"
 
@@ -143,6 +161,29 @@ if ! curl -sf "${CONDUIT_API_URL}${GENESIS_API_PATH}${SLUG}" -o "${CONFIG_DIR}/g
     echo "Failed to download genesis.json"
     echo "Do you have the right network slug?"
     exit 1
+fi
+
+if [[ "$(get_bool_env "UPDATE_BEDROCK_BLOCK")" == "true" ]]; then
+    case "$SLUG" in
+        saigon-testnet-cc58e966ql)
+            BEDROCK_BLOCK=45528550
+            ;;
+        ronin-mainnet-bfz9fadqzl)
+            BEDROCK_BLOCK=55577500
+            ;;
+        *)
+            echo "UPDATE_BEDROCK_BLOCK=true is only supported for Ronin networks:"
+            echo "  saigon-testnet-cc58e966ql"
+            echo "  ronin-mainnet-bfz9fadqzl"
+            exit 1
+            ;;
+    esac
+
+    echo "Updating genesis bedrockBlock to ${BEDROCK_BLOCK}..."
+    jq --argjson block "$BEDROCK_BLOCK" \
+        '.config.bedrockBlock = $block' \
+        "${CONFIG_DIR}/genesis.json" > "${CONFIG_DIR}/genesis.json.tmp" && \
+        mv "${CONFIG_DIR}/genesis.json.tmp" "${CONFIG_DIR}/genesis.json"
 fi
 
 echo "Fetching bootnodes..."
