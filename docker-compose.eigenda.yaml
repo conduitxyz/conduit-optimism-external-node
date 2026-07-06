@@ -35,6 +35,8 @@ services:
       - "--datadir=/data"
       - "--chain=/config/genesis.json"
       - "--rollup.sequencer=${L2_REMOTE_RPC}"
+      # Uncomment this line when using UPDATE_BEDROCK_BLOCK=true for Ronin/Saigon networks.
+      # - "--rollup.historicalrpc=${RETH_HISTORICAL_RPC}"
       - "--http"
       - "--http.corsdomain=*"
       - "--http.addr=0.0.0.0"
