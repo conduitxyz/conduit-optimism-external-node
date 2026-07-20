@@ -21,7 +21,7 @@ services:
       - .env
 
   execution:
-    image: ${OP_RETH_IMAGE:-ghcr.io/conduitxyz/conduit-op-reth}:${OP_RETH_VERSION:-v1.0.3}
+    image: ${OP_RETH_IMAGE:-ghcr.io/conduitxyz/conduit-op-reth}:${OP_RETH_VERSION:-v2.1.1}
     platform: linux/amd64
     restart: unless-stopped
     ports:
@@ -66,7 +66,7 @@ services:
       retries: 5
       start_period: 30s
   node:
-    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:${OP_NODE_VERSION:-v1.16.5}
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:${OP_NODE_VERSION:-v1.19.0}
     platform: linux/amd64
     restart: unless-stopped
     depends_on:
@@ -121,6 +121,7 @@ services:
       - OP_NODE_OVERRIDE_HOLOCENE=${OP_NODE_OVERRIDE_HOLOCENE}
       - OP_NODE_OVERRIDE_ISTHMUS=${OP_NODE_OVERRIDE_ISTHMUS}
       - OP_NODE_OVERRIDE_JOVIAN=${OP_NODE_OVERRIDE_JOVIAN}
+      - OP_NODE_OVERRIDE_KARST=${OP_NODE_OVERRIDE_KARST}
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 8545 || exit 1"]
       interval: 30s

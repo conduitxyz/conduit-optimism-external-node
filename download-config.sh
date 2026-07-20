@@ -302,7 +302,7 @@ if [[ "$ALTDA_TYPE" == "eigenda" ]]; then
 fi
 
 # Parse fork timestamps and set OP_NODE-only override env vars
-OPNODE_FORKS=("canyon" "delta" "ecotone" "fjord" "granite" "holocene" "isthmus" "jovian")
+OPNODE_FORKS=("canyon" "delta" "ecotone" "fjord" "granite" "holocene" "isthmus" "jovian" "karst")
 
 for fork in "${OPNODE_FORKS[@]}"; do
     timestamp=$(echo "$FORK_TIMESTAMPS" | jq -r ".${fork}_time // empty")
