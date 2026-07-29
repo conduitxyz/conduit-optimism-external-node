@@ -8,6 +8,7 @@ set -euo pipefail
 CONDUIT_API_URL="https://api.conduit.xyz"
 BOOTNODES_API_PATH="/public/network/bootnodes/"
 STATICPEERS_API_PATH="/public/network/staticPeers/"
+ELPEERS_API_PATH="/public/network/elPeers/"
 ROLLUP_API_PATH="/file/v1/optimism/rollup/"
 GENESIS_API_PATH="/file/v1/optimism/genesis/"
 FORK_TIMESTAMPS_API_PATH="/file/v1/optimism/forkTimestamps/"
@@ -159,6 +160,18 @@ STATIC_PEERS=$(curl -sf "${CONDUIT_API_URL}${STATICPEERS_API_PATH}${SLUG}") || {
     exit 1
 }
 
+# Execution-layer peer. op-node >= v1.19.1 has no req-resp CL sync client, so a
+# node that falls behind closes the gap through its execution layer. Optional:
+# networks that have not enabled an el-peer return 404, and the node still
+# follows the tip over CL gossip.
+echo "Fetching EL peer..."
+EL_PEERS=$(curl -sf "${CONDUIT_API_URL}${ELPEERS_API_PATH}${SLUG}") || {
+    echo "No EL peer published for this network; skipping."
+    echo "Backfilling a gap will fall back to deriving from L1/DA, which is slow"
+    echo "and cannot recover blocks whose DA has passed its retention window."
+    EL_PEERS=""
+}
+
 echo "Fetching fork timestamps..."
 FORK_TIMESTAMPS=$(curl -sf "${CONDUIT_API_URL}${FORK_TIMESTAMPS_API_PATH}${SLUG}") || {
     echo "Failed to fetch fork timestamps"
@@ -218,6 +231,7 @@ fi
 update_env "L2_REMOTE_RPC" "https://rpc-${SLUG}.t.conduit.xyz"
 update_env "OP_NODE_P2P_BOOTNODES" "${BOOTNODES}"
 update_env "OP_NODE_P2P_STATIC" "${STATIC_PEERS}"
+update_env "EL_TRUSTED_PEERS" "${EL_PEERS}"
 if [[ -n "$PUBLIC_IP" ]]; then
     update_env "OP_NODE_P2P_ADVERTISE_IP" "$PUBLIC_IP"
 fi
@@ -294,6 +308,7 @@ echo "  SNAPSHOT_ENABLED=${SNAPSHOT_ENABLED_VALUE}"
 echo "  L2_REMOTE_RPC=https://rpc-${SLUG}.t.conduit.xyz"
 echo "  OP_NODE_P2P_BOOTNODES=${BOOTNODES}"
 echo "  OP_NODE_P2P_STATIC=${STATIC_PEERS}"
+echo "  EL_TRUSTED_PEERS=${EL_PEERS}"
 if [[ "$ALTDA_TYPE" == "eigenda" ]]; then
     echo "  OP_RETH_IMAGE=$(get_env "OP_RETH_IMAGE")"
     echo "  OP_RETH_VERSION=$(get_env "OP_RETH_VERSION")"
