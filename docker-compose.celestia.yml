@@ -37,6 +37,11 @@ services:
       - "node"
       - "--datadir=/data"
       - "--chain=/config/genesis.json"
+      # Carries the trusted EL peer, written by download-config.sh. Passed
+      # unconditionally because reth reads the file and leaves it alone;
+      # a --trusted-peers flag could not be, since reth rejects an empty
+      # value and a compose command list cannot omit an entry.
+      - "--config=/config/reth.toml"
       - "--rollup.sequencer=${L2_REMOTE_RPC}"
       - "--http"
       - "--http.corsdomain=*"
