@@ -13,7 +13,7 @@ services:
       - "node"
       - "--datadir=/data"
       - "--chain=/config/genesis.json"
-      # Uncomment this line when using UPDATE_BEDROCK_BLOCK=true for zircuit-garfield-testnet.
+      # Uncomment this line when using UPDATE_BEDROCK_BLOCK=true if chain has historical RPC
       # - "--rollup.historicalrpc=${RETH_HISTORICAL_RPC}"
       - "--http"
       - "--http.corsdomain=*"
