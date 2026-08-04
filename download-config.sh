@@ -174,11 +174,15 @@ if [[ "$(get_bool_env "UPDATE_BEDROCK_BLOCK")" == "true" ]]; then
         zircuit-garfield-testnet)
             BEDROCK_BLOCK=21503691
             ;;
+        zircuit-mainnet)
+            BEDROCK_BLOCK=32956468
+            ;;
         *)
             echo "UPDATE_BEDROCK_BLOCK=true is only supported for Ronin and Zircuit networks:"
             echo "  saigon-testnet-cc58e966ql"
             echo "  ronin-mainnet-bfz9fadqzl"
             echo "  zircuit-garfield-testnet"
+            echo "  zircuit-mainnet"
             exit 1
             ;;
     esac
