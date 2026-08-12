@@ -6,7 +6,6 @@
 set -euo pipefail
 
 CONDUIT_API_URL="https://api.conduit.xyz"
-BOOTNODES_API_PATH="/public/network/bootnodes/"
 STATICPEERS_API_PATH="/public/network/staticPeers/"
 ELPEERS_API_PATH="/public/network/elPeers/"
 ROLLUP_API_PATH="/file/v1/optimism/rollup/"
@@ -195,13 +194,10 @@ if [[ "$(get_bool_env "UPDATE_BEDROCK_BLOCK")" == "true" ]]; then
         mv "${CONFIG_DIR}/genesis.json.tmp" "${CONFIG_DIR}/genesis.json"
 fi
 
-echo "Fetching bootnodes..."
-BOOTNODES=$(curl -sf "${CONDUIT_API_URL}${BOOTNODES_API_PATH}${SLUG}") || {
-    echo "Failed to fetch bootnodes"
-    echo "Are external nodes enabled for this network?"
-    exit 1
-}
-
+# The CL static peer: how op-node follows the chain tip (gossip). The API
+# returns op-elproxy's gossip multiaddr where it is deployed, else
+# op-syncproxy's. There is no discovery network; this peer is the only CL
+# connectivity the node has.
 echo "Fetching static peers..."
 STATIC_PEERS=$(curl -sf "${CONDUIT_API_URL}${STATICPEERS_API_PATH}${SLUG}") || {
     echo "Failed to fetch static peers"
@@ -213,7 +209,7 @@ STATIC_PEERS=$(curl -sf "${CONDUIT_API_URL}${STATICPEERS_API_PATH}${SLUG}") || {
 #
 # op-node v1.19.1 removed the req-resp consensus-layer sync client, so a node
 # that falls behind no longer closes the gap by asking a CL peer for the blocks
-# it missed — its execution layer fetches them from EL peers instead. Nothing
+# it missed; its execution layer fetches them from EL peers instead. Nothing
 # else in this compose gives the EL a peer, so without this a node that falls
 # behind can only derive the gap from L1/DA: slow, and impossible on altDA
 # chains once the data has passed its retention window.
@@ -304,8 +300,11 @@ if [[ -z "$SNAPSHOT_ENABLED_VALUE" ]]; then
     update_env "SNAPSHOT_ENABLED" "$SNAPSHOT_ENABLED_VALUE"
 fi
 update_env "L2_REMOTE_RPC" "https://rpc-${SLUG}.t.conduit.xyz"
-update_env "OP_NODE_P2P_BOOTNODES" "${BOOTNODES}"
 update_env "OP_NODE_P2P_STATIC" "${STATIC_PEERS}"
+# Gone since op-node v1.19.1: bootnode discovery is unused (the CL peer is
+# static) and the req-resp sync client these flags served no longer exists.
+delete_env "OP_NODE_P2P_BOOTNODES"
+delete_env "OP_NODE_P2P_SYNC_ONLYREQTOSTATIC"
 if [[ -n "$PUBLIC_IP" ]]; then
     update_env "OP_NODE_P2P_ADVERTISE_IP" "$PUBLIC_IP"
 fi
@@ -380,7 +379,6 @@ echo "Updated .env with:"
 echo "  NETWORK=${SLUG}"
 echo "  SNAPSHOT_ENABLED=${SNAPSHOT_ENABLED_VALUE}"
 echo "  L2_REMOTE_RPC=https://rpc-${SLUG}.t.conduit.xyz"
-echo "  OP_NODE_P2P_BOOTNODES=${BOOTNODES}"
 echo "  OP_NODE_P2P_STATIC=${STATIC_PEERS}"
 if [[ "$ALTDA_TYPE" == "eigenda" ]]; then
     echo "  OP_RETH_IMAGE=$(get_env "OP_RETH_IMAGE")"

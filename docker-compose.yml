@@ -50,7 +50,7 @@ services:
       retries: 5
       start_period: 30s
   node:
-    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:${OP_NODE_VERSION:-v1.19.0}
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:${OP_NODE_VERSION:-v1.19.2}
     platform: linux/amd64
     restart: unless-stopped
     depends_on:
@@ -89,10 +89,10 @@ services:
       - OP_NODE_L1_ETH_RPC=${OP_NODE_L1_ETH_RPC}
       - OP_NODE_L1_BEACON=${OP_NODE_L1_BEACON}
       - OP_NODE_P2P_STATIC=${OP_NODE_P2P_STATIC}
-      - OP_NODE_P2P_BOOTNODES=${OP_NODE_P2P_BOOTNODES}
       - OP_NODE_P2P_ADVERTISE_IP=${OP_NODE_P2P_ADVERTISE_IP}
-      - OP_NODE_P2P_SYNC_ONLYREQTOSTATIC=${OP_NODE_P2P_SYNC_ONLYREQTOSTATIC}
-      - OP_NODE_SYNCMODE=${OP_NODE_SYNCMODE}
+      # The CL peer is static; there is no discovery network for external nodes.
+      - OP_NODE_P2P_NO_DISCOVERY=true
+      - OP_NODE_SYNCMODE=${OP_NODE_SYNCMODE:-execution-layer}
       - OP_NODE_OVERRIDE_CANYON=${OP_NODE_OVERRIDE_CANYON}
       - OP_NODE_OVERRIDE_DELTA=${OP_NODE_OVERRIDE_DELTA}
       - OP_NODE_OVERRIDE_ECOTONE=${OP_NODE_OVERRIDE_ECOTONE}
