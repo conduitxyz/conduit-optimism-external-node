@@ -32,6 +32,35 @@ This repository contains the relevant Docker builds to run your own node on OP S
 
 **The node runs with `op-reth` in execution-layer sync mode.** `op-reth` operates as an archive node in this configuration, so plan for materially higher disk usage than a pruned full node.
 
+### Closing a gap
+
+If the node is stopped or falls behind, it catches up through its **execution
+layer**, not its consensus layer; `op-node` v1.19.1 removed the request/response
+CL sync client. That means `op-reth` needs an execution-layer peer to fetch the
+missing range from.
+
+`make setup` writes `config/reth.toml` with Conduit's EL peer for the network, and
+the compose files pass it via `--config`. Nothing else here gives `op-reth` a
+peer, so if that file has no entry, a node that falls behind can only re-derive
+the gap from L1/DA: slow, and impossible on alt-DA networks once the data has
+passed its retention window.
+
+Two things worth knowing:
+
+- **The peer retains a rolling window, not full history.** It closes gaps; it does
+  not bootstrap a node from genesis. Start a fresh node from a snapshot
+  (`SNAPSHOT_ENABLED=true`), then the peer keeps it current.
+- **Not every network publishes one.** `make setup` says so if it does not, and
+  writes an empty list. Following the chain tip is unaffected either way.
+
+### Following the tip
+
+`op-node` follows the chain tip over CL gossip from a single static peer
+(`OP_NODE_P2P_STATIC`, written by `make setup`). On networks where Conduit's
+EL peer is deployed, the same host serves both layers: CL gossip on 9222 and
+the EL devp2p listener on 30303. There is no discovery network for external
+nodes; the static peer is the only CL connectivity the node has.
+
 ## Image Versions
 
 Default Docker image versions (can be overridden in `.env`):
@@ -40,7 +69,7 @@ Default Docker image versions (can be overridden in `.env`):
 |----------|---------|
 | `OP_RETH_IMAGE` | `ghcr.io/conduitxyz/conduit-op-reth` |
 | `OP_RETH_VERSION` | `v2.1.2` |
-| `OP_NODE_VERSION` | `v1.19.0` |
+| `OP_NODE_VERSION` | `v1.19.2` |
 | `CELESTIA_DA_SERVER_VERSION` | `0.12.0` |
 | `EIGENDA_PROXY_VERSION` | `2.7.0` |
 
