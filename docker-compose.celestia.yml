@@ -24,7 +24,7 @@ services:
       - /etc/ssl/certs:/etc/ssl/certs:ro
 
   execution:
-    image: ${OP_RETH_IMAGE:-ghcr.io/conduitxyz/conduit-op-reth}:${OP_RETH_VERSION:-v2.1.2}
+    image: ${OP_RETH_IMAGE:-ghcr.io/conduitxyz/conduit-op-reth}:${OP_RETH_VERSION:-v2.2.0}
     platform: linux/amd64
     restart: unless-stopped
     ports:
