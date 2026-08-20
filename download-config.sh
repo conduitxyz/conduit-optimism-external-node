@@ -34,7 +34,10 @@ update_env() {
         rm -f "${ENV_FILE}.bak"
     else
         # Append new variable
-        echo "${key}=${value}" >> "$ENV_FILE"
+        if [[ -s "$ENV_FILE" ]] && [[ "$(tail -c 1 "$ENV_FILE" | wc -l)" -eq 0 ]]; then
+            printf '\n' >> "$ENV_FILE"
+        fi
+        printf '%s=%s\n' "$key" "$value" >> "$ENV_FILE"
     fi
 }
 
