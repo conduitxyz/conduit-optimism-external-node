@@ -21,7 +21,7 @@ services:
       - .env
 
   execution:
-    image: ${OP_RETH_IMAGE:-ghcr.io/conduitxyz/conduit-op-reth}:${OP_RETH_VERSION:-v2.2.0}
+    image: ${OP_RETH_IMAGE:-ghcr.io/conduitxyz/conduit-op-reth}:${OP_RETH_VERSION:-v2.2.2}
     platform: linux/amd64
     restart: unless-stopped
     ports:
