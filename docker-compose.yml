@@ -1,6 +1,6 @@
 services:
   execution:
-    image: ${OP_RETH_IMAGE:-ghcr.io/conduitxyz/conduit-op-reth}:${OP_RETH_VERSION:-v2.2.3}
+    image: ${OP_RETH_IMAGE:-ghcr.io/conduitxyz/conduit-op-reth}:${OP_RETH_VERSION:-v2.3.0}
     platform: linux/amd64
     restart: unless-stopped
     ports:
@@ -18,7 +18,7 @@ services:
       # a --trusted-peers flag could not be, since reth rejects an empty
       # value and a compose command list cannot omit an entry.
       - "--config=/config/reth.toml"
-      # Uncomment this line when using UPDATE_BEDROCK_BLOCK=true if chain has historical RPC
+      # Uncomment this line for migration networks with a historical RPC
       # - "--rollup.historicalrpc=${RETH_HISTORICAL_RPC}"
       - "--http"
       - "--http.corsdomain=*"
@@ -50,7 +50,7 @@ services:
       retries: 5
       start_period: 30s
   node:
-    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:${OP_NODE_VERSION:-v1.19.3}
+    image: us-docker.pkg.dev/oplabs-tools-artifacts/images/op-node:${OP_NODE_VERSION:-v1.19.7}
     platform: linux/amd64
     restart: unless-stopped
     depends_on:
