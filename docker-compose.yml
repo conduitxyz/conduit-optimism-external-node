@@ -18,7 +18,7 @@ services:
       # a --trusted-peers flag could not be, since reth rejects an empty
       # value and a compose command list cannot omit an entry.
       - "--config=/config/reth.toml"
-      # Uncomment this line when using UPDATE_BEDROCK_BLOCK=true if chain has historical RPC
+      # Uncomment this line for migration networks with a historical RPC
       # - "--rollup.historicalrpc=${RETH_HISTORICAL_RPC}"
       - "--http"
       - "--http.corsdomain=*"

@@ -174,27 +174,25 @@ if [[ "$(get_bool_env "UPDATE_BEDROCK_BLOCK")" == "true" ]]; then
         ronin-mainnet-bfz9fadqzl)
             BEDROCK_BLOCK=55577500
             ;;
-        zircuit-garfield-testnet)
-            BEDROCK_BLOCK=21503691
-            ;;
-        zircuit-mainnet)
-            BEDROCK_BLOCK=32956468
+        zircuit-garfield-testnet|zircuit-mainnet)
+            echo "UPDATE_BEDROCK_BLOCK is not needed for ${SLUG}; keeping genesis.json unchanged."
+            BEDROCK_BLOCK=""
             ;;
         *)
-            echo "UPDATE_BEDROCK_BLOCK=true is only supported for Ronin and Zircuit networks:"
+            echo "UPDATE_BEDROCK_BLOCK=true is only supported for Ronin networks:"
             echo "  saigon-testnet-cc58e966ql"
             echo "  ronin-mainnet-bfz9fadqzl"
-            echo "  zircuit-garfield-testnet"
-            echo "  zircuit-mainnet"
             exit 1
             ;;
     esac
 
-    echo "Updating genesis bedrockBlock to ${BEDROCK_BLOCK}..."
-    jq --argjson block "$BEDROCK_BLOCK" \
-        '.config.bedrockBlock = $block' \
-        "${CONFIG_DIR}/genesis.json" > "${CONFIG_DIR}/genesis.json.tmp" && \
-        mv "${CONFIG_DIR}/genesis.json.tmp" "${CONFIG_DIR}/genesis.json"
+    if [[ -n "$BEDROCK_BLOCK" ]]; then
+        echo "Updating genesis bedrockBlock to ${BEDROCK_BLOCK}..."
+        jq --argjson block "$BEDROCK_BLOCK" \
+            '.config.bedrockBlock = $block' \
+            "${CONFIG_DIR}/genesis.json" > "${CONFIG_DIR}/genesis.json.tmp" && \
+            mv "${CONFIG_DIR}/genesis.json.tmp" "${CONFIG_DIR}/genesis.json"
+    fi
 fi
 
 # The CL static peer: how op-node follows the chain tip (gossip). The API
