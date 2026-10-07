@@ -69,7 +69,7 @@ Default Docker image versions (can be overridden in `.env`):
 |----------|---------|
 | `OP_RETH_IMAGE` | `ghcr.io/conduitxyz/conduit-op-reth` |
 | `OP_RETH_VERSION` | `v2.3.0` |
-| `OP_NODE_VERSION` | `v1.19.3` |
+| `OP_NODE_VERSION` | `v1.19.7` |
 | `CELESTIA_DA_SERVER_VERSION` | `0.12.0` |
 | `EIGENDA_PROXY_VERSION` | `2.7.0` |
 
