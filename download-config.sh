@@ -167,32 +167,7 @@ if ! curl -sf "${CONDUIT_API_URL}${GENESIS_API_PATH}${SLUG}" -o "${CONFIG_DIR}/g
 fi
 
 if [[ "$(get_bool_env "UPDATE_BEDROCK_BLOCK")" == "true" ]]; then
-    case "$SLUG" in
-        saigon-testnet-cc58e966ql)
-            BEDROCK_BLOCK=45528550
-            ;;
-        ronin-mainnet-bfz9fadqzl)
-            BEDROCK_BLOCK=55577500
-            ;;
-        zircuit-garfield-testnet|zircuit-mainnet)
-            echo "UPDATE_BEDROCK_BLOCK is not needed for ${SLUG}; keeping genesis.json unchanged."
-            BEDROCK_BLOCK=""
-            ;;
-        *)
-            echo "UPDATE_BEDROCK_BLOCK=true is only supported for Ronin networks:"
-            echo "  saigon-testnet-cc58e966ql"
-            echo "  ronin-mainnet-bfz9fadqzl"
-            exit 1
-            ;;
-    esac
-
-    if [[ -n "$BEDROCK_BLOCK" ]]; then
-        echo "Updating genesis bedrockBlock to ${BEDROCK_BLOCK}..."
-        jq --argjson block "$BEDROCK_BLOCK" \
-            '.config.bedrockBlock = $block' \
-            "${CONFIG_DIR}/genesis.json" > "${CONFIG_DIR}/genesis.json.tmp" && \
-            mv "${CONFIG_DIR}/genesis.json.tmp" "${CONFIG_DIR}/genesis.json"
-    fi
+    echo "UPDATE_BEDROCK_BLOCK is no longer used; keeping genesis.json unchanged."
 fi
 
 # The CL static peer: how op-node follows the chain tip (gossip). The API
