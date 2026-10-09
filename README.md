@@ -86,13 +86,14 @@ Before starting, configure these in your `.env` file:
 | `L2_REMOTE_RPC` | Remote L2 RPC used by `make status` for sync comparison |
 | `GCP_PROJECT` | Google Cloud billing project used by `gcloud storage` for requester-pays snapshot downloads; defaults to the active `gcloud` project when unset |
 | `RETH_HISTORICAL_RPC` | Optional pre-bedrock historical RPC for migration networks |
+| `RETH_HISTORICAL_RPC_BLOCK` | Historical RPC cutoff block for Ronin (`55577500`) and Saigon (`45528550`); used with `RETH_HISTORICAL_RPC` |
 
 **Note:** `L2_REMOTE_RPC` is automatically set by `make setup`. For production usage, create an API key in the [Conduit application](https://app.conduit.xyz/nodes) and append it to the URL:
 ```
 L2_REMOTE_RPC=https://rpc-<network-slug>.t.conduit.xyz/<api-key>
 ```
 
-**Note:** For migration networks, if the node needs pre-bedrock historical data, set `RETH_HISTORICAL_RPC` to an RPC endpoint that can serve it and uncomment the `--rollup.historicalrpc=${RETH_HISTORICAL_RPC}` line in the applicable Compose file. Leave that line commented for other chains.
+**Note:** For migration networks, if the node needs pre-bedrock historical data, set `RETH_HISTORICAL_RPC` to an RPC endpoint that can serve it and uncomment the `--rollup.historicalrpc=${RETH_HISTORICAL_RPC}` line in the applicable Compose file. For Ronin and Saigon, also set `RETH_HISTORICAL_RPC_BLOCK` and uncomment the `--rollup.historicalrpc.block=${RETH_HISTORICAL_RPC_BLOCK}` line. Leave these lines commented for other chains.
 
 #### Important 
 Snapshot restores stream from a requester-pays Google Cloud Storage bucket into `./data`. Set `GCP_PROJECT` in `.env`, export it, or configure an active `gcloud` project before enabling `SNAPSHOT_ENABLED=true`. The authenticated Google Cloud account also needs the `roles/serviceusage.serviceUsageConsumer` role on the billing project used for requester-pays requests ([GCP docs](https://docs.cloud.google.com/storage/docs/requester-pays#requirements)).

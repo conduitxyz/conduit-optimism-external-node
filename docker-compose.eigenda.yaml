@@ -40,8 +40,10 @@ services:
       # value and a compose command list cannot omit an entry.
       - "--config=/config/reth.toml"
       - "--rollup.sequencer=${L2_REMOTE_RPC}"
-      # Uncomment this line when using UPDATE_BEDROCK_BLOCK=true for Ronin/Saigon networks.
+      # Uncomment this line for migration networks with a historical RPC
       # - "--rollup.historicalrpc=${RETH_HISTORICAL_RPC}"
+      # Uncomment this line as well for Ronin/Saigon
+      # - "--rollup.historicalrpc.block=${RETH_HISTORICAL_RPC_BLOCK}"
       - "--http"
       - "--http.corsdomain=*"
       - "--http.addr=0.0.0.0"
