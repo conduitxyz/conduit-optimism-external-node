@@ -98,6 +98,11 @@ L2_REMOTE_RPC=https://rpc-<network-slug>.t.conduit.xyz/<api-key>
 #### Important 
 Snapshot restores stream from a requester-pays Google Cloud Storage bucket into `./data`. Set `GCP_PROJECT` in `.env`, export it, or configure an active `gcloud` project before enabling `SNAPSHOT_ENABLED=true`. The authenticated Google Cloud account also needs the `roles/serviceusage.serviceUsageConsumer` role on the billing project used for requester-pays requests ([GCP docs](https://docs.cloud.google.com/storage/docs/requester-pays#requirements)).
 
+The restore script checks for `snapshot_part_aa.tar.part` first and streams
+`snapshot_part_*.tar.part` in filename order for snapshots larger than 5 TB.
+If no multipart snapshot is present, it streams `latest.tar` as before.
+Archive parts are not stored locally. See the [snapshot format documentation](https://docs.conduit.xyz/chains/getting-started/run-a-node/op-stack-nodes#snapshots).
+
 
 
 
@@ -184,8 +189,11 @@ make clean     # Stop and remove all data (add ALTDA=celestia/eigenda if enabled
 | `docker-compose.eigenda.yaml` | EigenDA configuration |
 | `.env.example` | Environment variable template |
 | `download-config.sh` | Downloads rollup.json/genesis.json and updates `op-reth`/`op-node` env vars |
-| `download-snapshot.sh` | Restores the Conduit `latest.tar` snapshot into `./data` when enabled during setup |
+| `download-snapshot.sh` | Restores the Conduit snapshot (`latest.tar` or multipart) into `./data` when enabled during setup |
 | `sync-status.sh` | Monitors node sync progress |
+
+The offline snapshot regression can be run with `bash tests/download-snapshot.test.sh`.
+It uses local tar/split fixtures and a fake `gcloud` transport; it does not contact Google Cloud.
 
 ## Data Storage
 
