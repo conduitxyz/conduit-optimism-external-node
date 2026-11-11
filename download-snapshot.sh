@@ -98,15 +98,33 @@ if [[ -z "${GCP_PROJECT:-}" ]]; then
     exit 1
 fi
 
-SNAPSHOT_URL="gs://conduit-networks-snapshots/${NETWORK}/latest.tar"
-SNAPSHOT_TOTAL_BYTES="$(
-    gcloud --billing-project="$GCP_PROJECT" storage objects describe "$SNAPSHOT_URL" --format="value(size)" 2>/dev/null || true
-)"
-if [[ "$SNAPSHOT_TOTAL_BYTES" =~ ^[0-9]+$ ]]; then
+SNAPSHOT_PREFIX="gs://conduit-networks-snapshots/${NETWORK}"
+SNAPSHOT_URLS=("${SNAPSHOT_PREFIX}/latest.tar")
+if gcloud --billing-project="$GCP_PROJECT" storage ls "${SNAPSHOT_PREFIX}/snapshot_part_aa.tar.part" >/dev/null 2>&1; then
+    SNAPSHOT_PARTS="$(gcloud --billing-project="$GCP_PROJECT" storage ls "${SNAPSHOT_PREFIX}/snapshot_part_*.tar.part")"
+    SNAPSHOT_URLS=()
+    while IFS= read -r SNAPSHOT_URL; do
+        SNAPSHOT_URLS+=("$SNAPSHOT_URL")
+    done < <(printf '%s\n' "$SNAPSHOT_PARTS" | LC_ALL=C sort)
+fi
+
+SNAPSHOT_TOTAL_BYTES=0
+for SNAPSHOT_URL in "${SNAPSHOT_URLS[@]}"; do
+    SNAPSHOT_BYTES="$(
+        gcloud --billing-project="$GCP_PROJECT" storage objects describe "$SNAPSHOT_URL" --format="value(size)" 2>/dev/null || true
+    )"
+    if [[ "$SNAPSHOT_BYTES" =~ ^[0-9]+$ ]]; then
+        SNAPSHOT_TOTAL_BYTES=$((SNAPSHOT_TOTAL_BYTES + SNAPSHOT_BYTES))
+    else
+        SNAPSHOT_TOTAL_BYTES=""
+        break
+    fi
+done
+if [[ -n "$SNAPSHOT_TOTAL_BYTES" ]]; then
     SNAPSHOT_TOTAL_SIZE="$(format_bytes "$SNAPSHOT_TOTAL_BYTES")"
 fi
 
-echo "Streaming snapshot from ${SNAPSHOT_URL} into ${DATADIR}..."
+echo "Streaming snapshot from ${SNAPSHOT_PREFIX} into ${DATADIR}..."
 if [[ -n "$SNAPSHOT_TOTAL_SIZE" ]]; then
     echo "Snapshot size: ${SNAPSHOT_TOTAL_SIZE}."
 fi
@@ -115,8 +133,11 @@ start_progress_monitor
 trap stop_progress_monitor EXIT
 trap 'stop_progress_monitor; exit 130' INT
 trap 'stop_progress_monitor; exit 143' TERM
-gcloud --billing-project="$GCP_PROJECT" storage cat "$SNAPSHOT_URL" |
-    tar --no-same-owner --no-same-permissions -xf - -C "$DATADIR" --strip-components=1
+(
+    for SNAPSHOT_URL in "${SNAPSHOT_URLS[@]}"; do
+        gcloud --billing-project="$GCP_PROJECT" storage cat "$SNAPSHOT_URL"
+    done
+) | tar --no-same-owner --no-same-permissions -xf - -C "$DATADIR" --strip-components=1
 stop_progress_monitor
 trap - EXIT INT TERM
 
