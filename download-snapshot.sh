@@ -106,18 +106,30 @@ if [[ "$SNAPSHOT_TOTAL_BYTES" =~ ^[0-9]+$ ]]; then
     SNAPSHOT_TOTAL_SIZE="$(format_bytes "$SNAPSHOT_TOTAL_BYTES")"
 fi
 
-echo "Streaming snapshot from ${SNAPSHOT_URL} into ${DATADIR}..."
+# Download fully before extracting: `gcloud storage cp` retries, resumes, and
+# validates the checksum, so a network blip doesn't corrupt a half-extracted datadir.
+DOWNLOAD_DIR="$(mktemp -d "$(dirname "$DATADIR")/.snapshot-download.XXXXXX")"
+SNAPSHOT_FILE="${DOWNLOAD_DIR}/latest.tar"
+
+cleanup() {
+    stop_progress_monitor
+    rm -rf "$DOWNLOAD_DIR"
+}
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT
+trap 'cleanup; exit 143' TERM
+
+echo "Downloading snapshot from ${SNAPSHOT_URL} to ${DOWNLOAD_DIR}..."
 if [[ -n "$SNAPSHOT_TOTAL_SIZE" ]]; then
-    echo "Snapshot size: ${SNAPSHOT_TOTAL_SIZE}."
+    echo "Snapshot size: ${SNAPSHOT_TOTAL_SIZE}. About twice this is needed free during restore."
 fi
+gcloud --billing-project="$GCP_PROJECT" storage cp "$SNAPSHOT_URL" "$SNAPSHOT_FILE"
+
+echo "Extracting snapshot into ${DATADIR}..."
 echo "Large database files may take a while to extract without additional output."
 start_progress_monitor
-trap stop_progress_monitor EXIT
-trap 'stop_progress_monitor; exit 130' INT
-trap 'stop_progress_monitor; exit 143' TERM
-gcloud --billing-project="$GCP_PROJECT" storage cat "$SNAPSHOT_URL" |
-    tar --no-same-owner --no-same-permissions -xf - -C "$DATADIR" --strip-components=1
-stop_progress_monitor
+tar --no-same-owner --no-same-permissions -xf "$SNAPSHOT_FILE" -C "$DATADIR" --strip-components=1
+cleanup
 trap - EXIT INT TERM
 
 echo "Snapshot restore complete."
