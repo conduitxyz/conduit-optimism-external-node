@@ -96,7 +96,7 @@ L2_REMOTE_RPC=https://rpc-<network-slug>.t.conduit.xyz/<api-key>
 **Note:** For migration networks, if the node needs pre-bedrock historical data, set `RETH_HISTORICAL_RPC` to an RPC endpoint that can serve it and uncomment the `--rollup.historicalrpc=${RETH_HISTORICAL_RPC}` line in the applicable Compose file. For Ronin and Saigon, also set `RETH_HISTORICAL_RPC_BLOCK` and uncomment the `--rollup.historicalrpc.block=${RETH_HISTORICAL_RPC_BLOCK}` line. Leave these lines commented for other chains.
 
 #### Important 
-Snapshot restores stream from a requester-pays Google Cloud Storage bucket into `./data`. Set `GCP_PROJECT` in `.env`, export it, or configure an active `gcloud` project before enabling `SNAPSHOT_ENABLED=true`. The authenticated Google Cloud account also needs the `roles/serviceusage.serviceUsageConsumer` role on the billing project used for requester-pays requests ([GCP docs](https://docs.cloud.google.com/storage/docs/requester-pays#requirements)).
+Snapshot restores download the full snapshot from a requester-pays Google Cloud Storage bucket, verify its checksum, then extract it into `./data`, so about twice the snapshot size must be free during restore. Set `GCP_PROJECT` in `.env`, export it, or configure an active `gcloud` project before enabling `SNAPSHOT_ENABLED=true`. The authenticated Google Cloud account also needs the `roles/serviceusage.serviceUsageConsumer` role on the billing project used for requester-pays requests ([GCP docs](https://docs.cloud.google.com/storage/docs/requester-pays#requirements)).
 
 
 
